@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_mlkit_document_scanner/google_mlkit_document_scanner.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../theme/app_theme.dart';
@@ -27,7 +27,7 @@ class ScanScreen extends StatefulWidget {
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  final DocumentScanner _documentScanner = DocumentScanner();
+  final ImagePicker _picker = ImagePicker();
   final List<ScannedDocument> _documents = [];
   bool _isScanning = false;
 
@@ -40,31 +40,34 @@ class _ScanScreenState extends State<ScanScreen> {
 
   Future<void> _requestPermissions() async {
     await Permission.camera.request();
-    await Permission.storage.request();
+    await Permission.photos.request();
   }
 
   Future<void> _loadDocuments() async {
-    // Load previously saved documents
-    final directory = await getApplicationDocumentsDirectory();
-    final docDir = Directory('${directory.path}/scanned_documents');
-    if (await docDir.exists()) {
-      final files = docDir.listSync();
-      for (var file in files) {
-        if (file is File && file.path.endsWith('.jpg')) {
-          final name = file.path.split('/').last.replaceAll('.jpg', '');
-          _documents.add(ScannedDocument(
-            id: file.path,
-            name: name,
-            imagePath: file.path,
-            scannedAt: file.statSync().modified,
-          ));
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final docDir = Directory('${directory.path}/scanned_documents');
+      if (await docDir.exists()) {
+        final files = docDir.listSync();
+        for (var file in files) {
+          if (file is File && file.path.endsWith('.jpg')) {
+            final name = file.path.split('/').last.replaceAll('.jpg', '');
+            _documents.add(ScannedDocument(
+              id: file.path,
+              name: name,
+              imagePath: file.path,
+              scannedAt: file.statSync().modified,
+            ));
+          }
         }
+        setState(() {});
       }
-      setState(() {});
+    } catch (e) {
+      debugPrint('Error loading documents: $e');
     }
   }
 
-  Future<void> _scanDocument() async {
+  Future<void> _scanDocument({required ImageSource source}) async {
     if (_isScanning) return;
     
     setState(() {
@@ -72,44 +75,39 @@ class _ScanScreenState extends State<ScanScreen> {
     });
 
     try {
-      final DocumentScannerOptions options = DocumentScannerOptions(
-        documentFormat: DocumentFormat.jpeg,
-        mode: ScannerMode.filter,
-        isGalleryImportEnabled: true,
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 90,
       );
-
-      final scannedDocs = await _documentScanner.scanDocument(options);
       
-      if (scannedDocs.isNotEmpty) {
+      if (image != null) {
         final directory = await getApplicationDocumentsDirectory();
         final docDir = Directory('${directory.path}/scanned_documents');
         if (!await docDir.exists()) {
           await docDir.create(recursive: true);
         }
 
-        for (var doc in scannedDocs) {
-          final timestamp = DateTime.now().millisecondsSinceEpoch;
-          final fileName = 'document_$timestamp.jpg';
-          final newPath = '${docDir.path}/$fileName';
-          
-          // Copy the scanned image to our app directory
-          final imageFile = File(doc.images.first);
-          await imageFile.copy(newPath);
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'document_$timestamp.jpg';
+        final newPath = '${docDir.path}/$fileName';
+        
+        // Copy the image to our app directory
+        final imageFile = File(image.path);
+        await imageFile.copy(newPath);
 
-          setState(() {
-            _documents.add(ScannedDocument(
-              id: newPath,
-              name: 'Dokument ${_documents.length + 1}',
-              imagePath: newPath,
-              scannedAt: DateTime.now(),
-            ));
-          });
-        }
+        setState(() {
+          _documents.add(ScannedDocument(
+            id: newPath,
+            name: 'Dokument ${_documents.length + 1}',
+            imagePath: newPath,
+            scannedAt: DateTime.now(),
+          ));
+        });
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${scannedDocs.length} Dokument(e) gescannt!'),
+              content: const Text('Dokument erfolgreich gescannt!'),
               backgroundColor: AppTheme.turquoise,
             ),
           );
@@ -119,7 +117,7 @@ class _ScanScreenState extends State<ScanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Fehler beim Scannen: $e'),
+            content: Text('Fehler: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -129,6 +127,57 @@ class _ScanScreenState extends State<ScanScreen> {
         _isScanning = false;
       });
     }
+  }
+
+  void _showSourcePicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.darkCard,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Dokument scannen',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 20),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppTheme.purple,
+                child: Icon(Icons.camera_alt, color: Colors.white),
+              ),
+              title: const Text('Kamera'),
+              subtitle: const Text('Mit der Kamera aufnehmen'),
+              onTap: () {
+                Navigator.pop(context);
+                _scanDocument(source: ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppTheme.turquoise,
+                child: Icon(Icons.photo_library, color: Colors.white),
+              ),
+              title: const Text('Galerie'),
+              subtitle: const Text('Aus der Galerie wählen'),
+              onTap: () {
+                Navigator.pop(context);
+                _scanDocument(source: ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _deleteDocument(ScannedDocument doc) async {
@@ -151,10 +200,21 @@ class _ScanScreenState extends State<ScanScreen> {
     );
 
     if (confirmed == true) {
-      await File(doc.imagePath).delete();
-      setState(() {
-        _documents.removeWhere((d) => d.id == doc.id);
-      });
+      try {
+        await File(doc.imagePath).delete();
+        setState(() {
+          _documents.removeWhere((d) => d.id == doc.id);
+        });
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Fehler beim Löschen: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 
@@ -171,7 +231,7 @@ class _ScanScreenState extends State<ScanScreen> {
           Padding(
             padding: const EdgeInsets.all(20),
             child: GestureDetector(
-              onTap: _isScanning ? null : _scanDocument,
+              onTap: _isScanning ? null : _showSourcePicker,
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 24),

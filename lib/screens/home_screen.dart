@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../widgets/skill_card.dart';
+import '../screens/scan_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final Function(int)? onNavigate;
+
+  const HomeScreen({super.key, this.onNavigate});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -14,8 +17,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final List<SkillCategory> _categories = const [
     SkillCategory(
-      id: 'technique',
-      title: 'Technik',
+      id: 'scan',
+      title: 'Scannen',
       icon: 'camera',
       color: 'purple',
     ),
@@ -38,6 +41,24 @@ class _HomeScreenState extends State<HomeScreen> {
       color: 'yellow',
     ),
   ];
+
+  void _onCategoryTap(SkillCategory category) {
+    if (category.id == 'scan') {
+      // Open scan screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ScanScreen()),
+      );
+    } else {
+      // Show coming soon for other categories
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${category.title} kommt bald!'),
+          backgroundColor: Colors.grey[800],
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -69,9 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemBuilder: (context, index) {
                     return SkillCard(
                       category: _categories[index],
-                      onTap: () {
-                        // Navigate to category detail
-                      },
+                      onTap: () => _onCategoryTap(_categories[index]),
                     );
                   },
                 ),
@@ -96,30 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 0,
-        onTap: (index) {
-          // Handle navigation
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            label: 'Start',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.document_scanner_outlined),
-            label: 'Scannen',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            label: 'Profil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_outlined),
-            label: 'Einstellungen',
-          ),
-        ],
       ),
     );
   }
