@@ -13,17 +13,17 @@ class _LessonScreenState extends State<LessonScreen> {
   int _currentStage = 2;
 
   final List<Stage> _stages = const [
-    Stage(number: 1, label: 'Stage', isCompleted: true),
-    Stage(number: 2, label: 'Stage', isCurrent: true),
-    Stage(number: 3, label: 'Stage', isCompleted: false),
-    Stage(number: 4, label: 'Stage', isCompleted: false),
+    Stage(number: 1, label: 'Stufe', isCompleted: true),
+    Stage(number: 2, label: 'Stufe', isCurrent: true),
+    Stage(number: 3, label: 'Stufe', isCompleted: false),
+    Stage(number: 4, label: 'Stufe', isCompleted: false),
   ];
 
   final List<Lesson> _lessons = const [
     Lesson(
       id: '1',
-      title: 'Breaks. Good Place To Show Off',
-      subtitle: '4th lesson',
+      title: 'Breaks. Guter Ort zum Zeigen',
+      subtitle: '4. Lektion',
       order: 4,
       isUnlocked: true,
       isCompleted: false,
@@ -31,14 +31,14 @@ class _LessonScreenState extends State<LessonScreen> {
     Lesson(
       id: '2',
       title: 'Break Inside The Rhythm',
-      subtitle: '5th lesson',
+      subtitle: '5. Lektion',
       order: 5,
       isUnlocked: false,
     ),
     Lesson(
       id: '3',
-      title: 'Advanced Breaks',
-      subtitle: '6th lesson',
+      title: 'Fortgeschrittene Breaks',
+      subtitle: '6. Lektion',
       order: 6,
       isUnlocked: false,
     ),

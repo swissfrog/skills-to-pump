@@ -135,7 +135,7 @@ class LessonCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
-                    'Recent',
+                    'Aktuell',
                     style: TextStyle(
                       color: AppTheme.purple,
                       fontSize: 10,
@@ -198,7 +198,7 @@ class MoreButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
-              'More',
+              'Mehr',
               style: TextStyle(
                 color: AppTheme.textPrimary,
                 fontWeight: FontWeight.w600,

@@ -15,7 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<SkillCategory> _categories = const [
     SkillCategory(
       id: 'technique',
-      title: 'Technique',
+      title: 'Technik',
       icon: 'camera',
       color: 'purple',
     ),
@@ -27,7 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ),
     SkillCategory(
       id: 'coordination',
-      title: 'Coordination',
+      title: 'Koordination',
       icon: 'joystick',
       color: 'turquoise',
     ),
@@ -85,8 +85,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: NavigationRow(
-                  leftLabel: 'Lesson Plan',
-                  rightLabel: 'Your Progress',
+                  leftLabel: 'Lernplan',
+                  rightLabel: 'Fortschritt',
                   leftSelected: _lessonPlanSelected,
                   onLeftTap: () => setState(() => _lessonPlanSelected = true),
                   onRightTap: () => setState(() => _lessonPlanSelected = false),
@@ -105,15 +105,19 @@ class _HomeScreenState extends State<HomeScreen> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
-            label: 'Home',
+            label: 'Start',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.document_scanner_outlined),
+            label: 'Scannen',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
-            label: 'Profile',
+            label: 'Profil',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
-            label: 'Settings',
+            label: 'Einstellungen',
           ),
         ],
       ),

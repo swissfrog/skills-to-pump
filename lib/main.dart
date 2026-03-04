@@ -34,9 +34,32 @@ class _MainNavigatorState extends State<MainNavigator> {
   final List<Widget> _screens = const [
     HomeScreen(),
     LessonScreen(),
-    // Placeholder for other tabs
-    Scaffold(body: Center(child: Text('Profile'))),
-    Scaffold(body: Center(child: Text('Settings'))),
+    // Placeholder for Scan tab
+    Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.document_scanner, size: 80, color: AppTheme.purple),
+            SizedBox(height: 20),
+            Text(
+              'Scanne deinen Skill',
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Tippe auf das Kamera-Icon\num deinen Skill zu scannen',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    ),
+    // Placeholder for Profile
+    Scaffold(body: Center(child: Text('Profil', style: TextStyle(fontSize: 24)))),
+    // Placeholder for Settings
+    Scaffold(body: Center(child: Text('Einstellungen', style: TextStyle(fontSize: 24)))),
   ];
 
   @override
@@ -54,22 +77,27 @@ class _MainNavigatorState extends State<MainNavigator> {
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
-            label: 'Home',
+            label: 'Start',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.play_circle_outline),
             activeIcon: Icon(Icons.play_circle),
-            label: 'Lessons',
+            label: 'Lektionen',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.document_scanner_outlined),
+            activeIcon: Icon(Icons.document_scanner),
+            label: 'Scannen',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
             activeIcon: Icon(Icons.person),
-            label: 'Profile',
+            label: 'Profil',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings_outlined),
             activeIcon: Icon(Icons.settings),
-            label: 'Settings',
+            label: 'Einstellungen',
           ),
         ],
       ),
