@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'theme/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/lesson_screen.dart';
+import 'screens/scan_screen.dart';
 
 void main() {
   runApp(const SkillsToPumpApp());
@@ -34,32 +35,33 @@ class _MainNavigatorState extends State<MainNavigator> {
   final List<Widget> _screens = const [
     HomeScreen(),
     LessonScreen(),
-    // Placeholder for Scan tab
+    ScanScreen(),
+    // Placeholder for Profile
     Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.document_scanner, size: 80, color: AppTheme.purple),
+            Icon(Icons.person, size: 80, color: AppTheme.purple),
             SizedBox(height: 20),
-            Text(
-              'Scanne deinen Skill',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            SizedBox(height: 10),
-            Text(
-              'Tippe auf das Kamera-Icon\num deinen Skill zu scannen',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppTheme.textSecondary),
-            ),
+            Text('Profil', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
     ),
-    // Placeholder for Profile
-    Scaffold(body: Center(child: Text('Profil', style: TextStyle(fontSize: 24)))),
     // Placeholder for Settings
-    Scaffold(body: Center(child: Text('Einstellungen', style: TextStyle(fontSize: 24)))),
+    Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.settings, size: 80, color: AppTheme.purple),
+            SizedBox(height: 20),
+            Text('Einstellungen', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          ],
+        ),
+      ),
+    ),
   ];
 
   @override
@@ -73,6 +75,7 @@ class _MainNavigatorState extends State<MainNavigator> {
             _currentIndex = index;
           });
         },
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
