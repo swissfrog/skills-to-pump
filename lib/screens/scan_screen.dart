@@ -129,6 +129,166 @@ class _ScanScreenState extends State<ScanScreen> {
     }
   }
 
+  void _showArchive() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.darkBg,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  const Icon(Icons.folder, color: AppTheme.coral, size: 28),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Archiv',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${_documents.length} Dokumente',
+                    style: const TextStyle(
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            Expanded(
+              child: _documents.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'Keine Dokumente im Archiv',
+                        style: TextStyle(color: AppTheme.textSecondary),
+                      ),
+                    )
+                  : GridView.builder(
+                      controller: scrollController,
+                      padding: const EdgeInsets.all(20),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 0.8,
+                      ),
+                      itemCount: _documents.length,
+                      itemBuilder: (context, index) {
+                        final doc = _documents[_documents.length - 1 - index];
+                        return GestureDetector(
+                          onTap: () => _viewDocument(doc),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: AppTheme.darkCard,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                    child: Image.file(
+                                      File(doc.imagePath),
+                                      width: double.infinity,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                        color: AppTheme.darkCardLocked,
+                                        child: const Icon(Icons.image, color: AppTheme.textSecondary),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(8),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        doc.name,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 12,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      Text(
+                                        _formatDate(doc.scannedAt),
+                                        style: const TextStyle(
+                                          color: AppTheme.textSecondary,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _viewDocument(ScannedDocument doc) {
+    Navigator.pop(context);
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                File(doc.imagePath),
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                TextButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _deleteDocument(doc);
+                  },
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  label: const Text('Löschen', style: TextStyle(color: Colors.red)),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Schließen'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showSourcePicker() {
     showModalBottomSheet(
       context: context,
@@ -227,59 +387,100 @@ class _ScanScreenState extends State<ScanScreen> {
       ),
       body: Column(
         children: [
-          // Scan button
+          // Scan and Archive buttons
           Padding(
             padding: const EdgeInsets.all(20),
-            child: GestureDetector(
-              onTap: _isScanning ? null : _showSourcePicker,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.purple, AppTheme.turquoise],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+            child: Row(
+              children: [
+                // Scan Button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _isScanning ? null : _showSourcePicker,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppTheme.purple, AppTheme.turquoise],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.purple.withValues(alpha: 0.4),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          if (_isScanning)
+                            const CircularProgressIndicator(color: Colors.white)
+                          else
+                            const Icon(
+                              Icons.document_scanner,
+                              size: 36,
+                              color: Colors.white,
+                            ),
+                          const SizedBox(height: 8),
+                          Text(
+                            _isScanning ? 'Scanne...' : 'Scannen',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.purple.withValues(alpha: 0.4),
-                      blurRadius: 15,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
-                child: Column(
-                  children: [
-                    if (_isScanning)
-                      const CircularProgressIndicator(color: Colors.white)
-                    else
-                      const Icon(
-                        Icons.document_scanner,
-                        size: 48,
-                        color: Colors.white,
+                const SizedBox(width: 16),
+                // Archive Button
+                Expanded(
+                  child: GestureDetector(
+                    onTap: _showArchive,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [AppTheme.coral, AppTheme.yellow],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.coral.withValues(alpha: 0.4),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _isScanning ? 'Scanne...' : 'Dokument scannen',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.folder,
+                            size: 36,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Archiv',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Tippen um zu starten',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
           // Documents header
