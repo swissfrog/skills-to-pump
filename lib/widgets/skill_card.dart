@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 import '../theme/app_theme.dart';
@@ -5,125 +6,72 @@ import '../theme/app_theme.dart';
 class SkillCard extends StatelessWidget {
   final SkillCategory category;
   final VoidCallback? onTap;
+  const SkillCard({super.key, required this.category, this.onTap});
 
-  const SkillCard({
-    super.key,
-    required this.category,
-    this.onTap,
-  });
+  IconData _getIcon(String name) {
+    switch (name) {
+      case 'camera':    return Icons.camera_alt_outlined;
+      case 'safe':      return Icons.folder_outlined;
+      case 'joystick':  return Icons.videogame_asset_outlined;
+      case 'turntable': return Icons.music_note_outlined;
+      case 'upload':    return Icons.cloud_upload_outlined;
+      default:          return Icons.widgets_outlined;
+    }
+  }
 
-  IconData _getIconData(String iconName) {
-    switch (iconName) {
-      case 'camera':
-        return Icons.camera_alt;
-      case 'safe':
-        return Icons.lock;
-      case 'joystick':
-        return Icons.videogame_asset;
-      case 'turntable':
-        return Icons.album;
-      default:
-        return Icons.help_outline;
+  List<Color> _getGradient(String colorName) {
+    switch (colorName) {
+      case 'purple':    return [const Color(0xFF7C3AED), const Color(0xFFA78BFA)];
+      case 'coral':     return [const Color(0xFFE53E3E), const Color(0xFFFC8181)];
+      case 'turquoise': return [const Color(0xFF0D9488), const Color(0xFF5EEAD4)];
+      case 'yellow':    return [const Color(0xFFD97706), const Color(0xFFFCD34D)];
+      default:          return [const Color(0xFF7C3AED), const Color(0xFFA78BFA)];
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = AppTheme.getCategoryColor(category.color);
-    
+    final gradient = _getGradient(category.color);
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _getIconData(category.icon),
-              color: Colors.white,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              category.title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [gradient[0].withValues(alpha: 0.4), gradient[1].withValues(alpha: 0.2)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight,
               ),
-              textAlign: TextAlign.center,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1),
+              boxShadow: [
+                BoxShadow(color: gradient[0].withValues(alpha: 0.15), blurRadius: 24, offset: const Offset(0, 8)),
+              ],
             ),
-          ],
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+                  ),
+                  child: Icon(_getIcon(category.icon), color: Colors.white, size: 26),
+                ),
+                const SizedBox(height: 10),
+                Text(category.title,
+                  style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600, letterSpacing: 0.3),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
         ),
       ),
-    );
-  }
-}
-
-class NavigationRow extends StatelessWidget {
-  final String leftLabel;
-  final String rightLabel;
-  final bool leftSelected;
-  final VoidCallback? onLeftTap;
-  final VoidCallback? onRightTap;
-
-  const NavigationRow({
-    super.key,
-    required this.leftLabel,
-    required this.rightLabel,
-    this.leftSelected = true,
-    this.onLeftTap,
-    this.onRightTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: GestureDetector(
-            onTap: onLeftTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: leftSelected ? AppTheme.purple.withValues(alpha: 0.2) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                leftLabel,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: leftSelected ? AppTheme.purple : AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: GestureDetector(
-            onTap: onRightTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: !leftSelected ? AppTheme.purple.withValues(alpha: 0.2) : Colors.transparent,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                rightLabel,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: !leftSelected ? AppTheme.purple : AppTheme.textSecondary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

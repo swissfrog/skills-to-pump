@@ -1,41 +1,48 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import '../theme/app_theme.dart';
-
-class ScannedDocument {
-  final String id;
-  final String name;
-  final String imagePath;
-  final DateTime scannedAt;
-
-  ScannedDocument({
-    required this.id,
-    required this.name,
-    required this.imagePath,
-    required this.scannedAt,
-  });
-}
+import '../widgets/glass_widgets.dart';
+import '../models/models.dart';
+import '../services/doc_intelligence.dart';
+import '../services/doc_store.dart';
+import 'doc_detail_screen.dart';
 
 class ScanScreen extends StatefulWidget {
   const ScanScreen({super.key});
-
   @override
   State<ScanScreen> createState() => _ScanScreenState();
 }
 
 class _ScanScreenState extends State<ScanScreen> {
-  final ImagePicker _picker = ImagePicker();
-  final List<ScannedDocument> _documents = [];
-  bool _isScanning = false;
+  final _picker = ImagePicker();
+  final _ocr = TextRecognizer(script: TextRecognitionScript.latin);
+  final _store = DocStore();
+  bool _busy = false;
+  String _step = '';
+  int _stepIdx = 0;
+
+  static const _steps = [
+    'Bild laden…', 'Bild speichern…', 'OCR läuft…', 'KI analysiert…', 'Fertig!'
+  ];
 
   @override
   void initState() {
     super.initState();
+    _store.addListener(() { if (mounted) setState(() {}); });
     _requestPermissions();
-    _loadDocuments();
+  }
+
+  @override
+  void dispose() {
+    _ocr.close();
+    _store.removeListener(() {});
+    super.dispose();
   }
 
   Future<void> _requestPermissions() async {
@@ -43,555 +50,300 @@ class _ScanScreenState extends State<ScanScreen> {
     await Permission.photos.request();
   }
 
-  Future<void> _loadDocuments() async {
-    try {
-      final directory = await getApplicationDocumentsDirectory();
-      final docDir = Directory('${directory.path}/scanned_documents');
-      if (await docDir.exists()) {
-        final files = docDir.listSync();
-        for (var file in files) {
-          if (file is File && file.path.endsWith('.jpg')) {
-            final name = file.path.split('/').last.replaceAll('.jpg', '');
-            _documents.add(ScannedDocument(
-              id: file.path,
-              name: name,
-              imagePath: file.path,
-              scannedAt: file.statSync().modified,
-            ));
-          }
-        }
-        setState(() {});
-      }
-    } catch (e) {
-      debugPrint('Error loading documents: $e');
-    }
-  }
+  void _setStep(int i) => setState(() { _stepIdx = i; _step = _steps[i]; });
 
-  Future<void> _scanDocument({required ImageSource source}) async {
-    if (_isScanning) return;
-    
-    setState(() {
-      _isScanning = true;
-    });
-
+  Future<void> _scan(ImageSource source) async {
+    if (_busy) return;
+    setState(() { _busy = true; });
+    _setStep(0);
     try {
-      final XFile? image = await _picker.pickImage(
-        source: source,
-        imageQuality: 90,
+      final XFile? img = await _picker.pickImage(source: source, imageQuality: 95);
+      if (img == null) { setState(() { _busy = false; _step = ''; }); return; }
+
+      _setStep(1);
+      final dir = await getApplicationDocumentsDirectory();
+      final docDir = Directory('${dir.path}/scanned_documents');
+      if (!await docDir.exists()) await docDir.create(recursive: true);
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final savePath = '${docDir.path}/doc_$ts.jpg';
+      await File(img.path).copy(savePath);
+
+      _setStep(2);
+      final inputImg = InputImage.fromFilePath(savePath);
+      final recognized = await _ocr.processImage(inputImg);
+      final ocrText = recognized.text.trim();
+
+      _setStep(3);
+      await Future.delayed(const Duration(milliseconds: 400)); // allow UI update
+      final docId = 'doc_$ts';
+      var doc = ScannedDocument(
+        id: docId,
+        name: 'Dokument ${_store.totalDocs + 1}',
+        imagePath: savePath,
+        scannedAt: DateTime.now(),
+        ocrText: ocrText.isEmpty ? null : ocrText,
       );
-      
-      if (image != null) {
-        final directory = await getApplicationDocumentsDirectory();
-        final docDir = Directory('${directory.path}/scanned_documents');
-        if (!await docDir.exists()) {
-          await docDir.create(recursive: true);
-        }
+      doc = DocIntelligence.analyze(doc);
+      _store.addDocument(doc);
 
-        final timestamp = DateTime.now().millisecondsSinceEpoch;
-        final fileName = 'document_$timestamp.jpg';
-        final newPath = '${docDir.path}/$fileName';
-        
-        // Copy the image to our app directory
-        final imageFile = File(image.path);
-        await imageFile.copy(newPath);
-
-        setState(() {
-          _documents.add(ScannedDocument(
-            id: newPath,
-            name: 'Dokument ${_documents.length + 1}',
-            imagePath: newPath,
-            scannedAt: DateTime.now(),
-          ));
-        });
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Dokument erfolgreich gescannt!'),
-              backgroundColor: AppTheme.turquoise,
-            ),
-          );
-        }
+      _setStep(4);
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => DocDetailScreen(doc: doc)));
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Fehler: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Fehler: $e'), backgroundColor: Colors.red));
     } finally {
-      setState(() {
-        _isScanning = false;
-      });
-    }
-  }
-
-  void _showArchive() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.darkBg,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        expand: false,
-        builder: (context, scrollController) => Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Row(
-                children: [
-                  const Icon(Icons.folder, color: AppTheme.coral, size: 28),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Archiv',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${_documents.length} Dokumente',
-                    style: const TextStyle(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(),
-            Expanded(
-              child: _documents.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Keine Dokumente im Archiv',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    )
-                  : GridView.builder(
-                      controller: scrollController,
-                      padding: const EdgeInsets.all(20),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 0.8,
-                      ),
-                      itemCount: _documents.length,
-                      itemBuilder: (context, index) {
-                        final doc = _documents[_documents.length - 1 - index];
-                        return GestureDetector(
-                          onTap: () => _viewDocument(doc),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: AppTheme.darkCard,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: ClipRRect(
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                    child: Image.file(
-                                      File(doc.imagePath),
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
-                                        color: AppTheme.darkCardLocked,
-                                        child: const Icon(Icons.image, color: AppTheme.textSecondary),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(8),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        doc.name,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      Text(
-                                        _formatDate(doc.scannedAt),
-                                        style: const TextStyle(
-                                          color: AppTheme.textSecondary,
-                                          fontSize: 10,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _viewDocument(ScannedDocument doc) {
-    Navigator.pop(context);
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                File(doc.imagePath),
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _deleteDocument(doc);
-                  },
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  label: const Text('Löschen', style: TextStyle(color: Colors.red)),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Schließen'),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showSourcePicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.darkCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Dokument scannen',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 20),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppTheme.purple,
-                child: Icon(Icons.camera_alt, color: Colors.white),
-              ),
-              title: const Text('Kamera'),
-              subtitle: const Text('Mit der Kamera aufnehmen'),
-              onTap: () {
-                Navigator.pop(context);
-                _scanDocument(source: ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const CircleAvatar(
-                backgroundColor: AppTheme.turquoise,
-                child: Icon(Icons.photo_library, color: Colors.white),
-              ),
-              title: const Text('Galerie'),
-              subtitle: const Text('Aus der Galerie wählen'),
-              onTap: () {
-                Navigator.pop(context);
-                _scanDocument(source: ImageSource.gallery);
-              },
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _deleteDocument(ScannedDocument doc) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Dokument löschen?'),
-        content: Text('Möchtest du "${doc.name}" wirklich löschen?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Abbrechen'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Löschen', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      try {
-        await File(doc.imagePath).delete();
-        setState(() {
-          _documents.removeWhere((d) => d.id == doc.id);
-        });
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Fehler beim Löschen: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
+      setState(() { _busy = false; _step = ''; _stepIdx = 0; });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final docs = _store.docs;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dokumente scannen'),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Scan and Archive buttons
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                // Scan Button
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _isScanning ? null : _showSourcePicker,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppTheme.purple, AppTheme.turquoise],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.purple.withValues(alpha: 0.4),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          if (_isScanning)
-                            const CircularProgressIndicator(color: Colors.white)
-                          else
-                            const Icon(
-                              Icons.document_scanner,
-                              size: 36,
-                              color: Colors.white,
-                            ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _isScanning ? 'Scanne...' : 'Scannen',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Archive Button
-                Expanded(
-                  child: GestureDetector(
-                    onTap: _showArchive,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [AppTheme.coral, AppTheme.yellow],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.coral.withValues(alpha: 0.4),
-                            blurRadius: 15,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          const Icon(
-                            Icons.folder,
-                            size: 36,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Archiv',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+      backgroundColor: Colors.transparent,
+      body: GlassBackground(
+        child: SafeArea(
+          child: Column(children: [
+            GlassAppBar(
+              title: 'Dokument scannen',
+              subtitle: 'OCR • KI-Analyse • Auto-Kategorisierung',
+              actions: [GlassIconBtn(icon: Icons.info_outline, onTap: _showInfo)],
             ),
-          ),
-          // Documents header
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                const Icon(Icons.folder, color: AppTheme.textSecondary),
-                const SizedBox(width: 8),
-                Text(
-                  'Archivierte Dokumente (${_documents.length})',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: Row(children: [
+                Expanded(child: _ScanBtn(
+                  icon: Icons.camera_alt_outlined, label: 'Kamera',
+                  subtitle: 'Jetzt fotografieren', color: LP.purple,
+                  onTap: _busy ? null : () => _scan(ImageSource.camera),
+                )),
+                const SizedBox(width: 12),
+                Expanded(child: _ScanBtn(
+                  icon: Icons.photo_library_outlined, label: 'Galerie',
+                  subtitle: 'Bild importieren', color: AppTheme.blue,
+                  onTap: _busy ? null : () => _scan(ImageSource.gallery),
+                )),
+              ]),
             ),
-          ),
-          const SizedBox(height: 12),
-          // Documents list
-          Expanded(
-            child: _documents.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.folder_open,
-                          size: 80,
-                          color: AppTheme.textSecondary.withValues(alpha: 0.5),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Noch keine Dokumente',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary.withValues(alpha: 0.7),
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Scanne dein erstes Dokument!',
-                          style: TextStyle(
-                            color: AppTheme.textSecondary.withValues(alpha: 0.5),
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+            if (_busy) ...[
+              const SizedBox(height: 14),
+              _ProgressBar(stepIdx: _stepIdx, steps: _steps, currentStep: _step),
+            ],
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: SectionHeader(title: 'GESCANNTE DOKUMENTE', trailing: '${docs.length}'),
+            ),
+            Expanded(
+              child: docs.isEmpty
+                  ? _EmptyState(onScan: () => _scan(ImageSource.camera))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      itemCount: docs.length,
+                      itemBuilder: (_, i) => _DocTile(
+                        doc: docs[i],
+                        onTap: () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => DocDetailScreen(doc: docs[i]))),
+                      ),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _documents.length,
-                    itemBuilder: (context, index) {
-                      final doc = _documents[_documents.length - 1 - index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.darkCard,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(12),
-                          leading: ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(doc.imagePath),
-                              width: 60,
-                              height: 60,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
-                                width: 60,
-                                height: 60,
-                                color: AppTheme.darkCardLocked,
-                                child: const Icon(Icons.image, color: AppTheme.textSecondary),
-                              ),
-                            ),
-                          ),
-                          title: Text(
-                            doc.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(
-                            _formatDate(doc.scannedAt),
-                            style: const TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: () => _deleteDocument(doc),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
+            ),
+          ]),
+        ),
       ),
     );
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  void _showInfo() {
+    showDialog(context: context, builder: (_) => AlertDialog(
+      backgroundColor: const Color(0xFF1A1A2E),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: const Text('OCR & KI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+      content: const Text(
+        'Die App erkennt Text in gescannten Dokumenten (OCR) und analysiert ihn automatisch mit KI:\n\n'
+        '• Dokumenttyp erkennen\n• Absender ermitteln\n• Fristen & Aufgaben erkennen\n'
+        '• Zusammenfassung erstellen\n• Antwortbrief vorschlagen',
+        style: TextStyle(color: LP.label2, height: 1.6),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context),
+        child: const Text('OK', style: TextStyle(color: LP.purple)))],
+    ));
+  }
+}
+
+class _ProgressBar extends StatelessWidget {
+  final int stepIdx;
+  final List<String> steps;
+  final String currentStep;
+  const _ProgressBar({required this.stepIdx, required this.steps, required this.currentStep});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 18),
+      child: GlassCard(
+        tint: LP.purple.withValues(alpha: 0.12),
+        borderColor: LP.purple.withValues(alpha: 0.3),
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            const SizedBox(width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2, color: LP.purple)),
+            const SizedBox(width: 12),
+            Text(currentStep, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+            const Spacer(),
+            Text('${stepIdx + 1}/${steps.length}', style: const TextStyle(color: LP.label3, fontSize: 11)),
+          ]),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (stepIdx + 1) / steps.length,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              valueColor: const AlwaysStoppedAnimation(LP.purple),
+              minHeight: 4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(children: steps.asMap().entries.map((e) {
+            final done = e.key <= stepIdx;
+            return Expanded(child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 1),
+              height: 3,
+              decoration: BoxDecoration(
+                color: done ? LP.purple : Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ));
+          }).toList()),
+        ]),
+      ),
+    );
+  }
+}
+
+class _ScanBtn extends StatelessWidget {
+  final IconData icon; final String label, subtitle; final Color color; final VoidCallback? onTap;
+  const _ScanBtn({required this.icon, required this.label, required this.subtitle, required this.color, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            height: 110,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [color.withValues(alpha: 0.38), color.withValues(alpha: 0.18)],
+                begin: Alignment.topLeft, end: Alignment.bottomRight),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15), width: 1),
+              boxShadow: [BoxShadow(color: color.withValues(alpha: 0.2), blurRadius: 20, offset: const Offset(0, 6))],
+            ),
+            child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), shape: BoxShape.circle),
+                child: Icon(icon, color: Colors.white, size: 26)),
+              const SizedBox(height: 8),
+              Text(label, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)),
+              Text(subtitle, style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 10)),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DocTile extends StatelessWidget {
+  final ScannedDocument doc; final VoidCallback onTap;
+  const _DocTile({required this.doc, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasOcr = doc.ocrText?.isNotEmpty == true;
+    final cfg = AppTheme.getCardConfig(_docTypeId(doc.docType));
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GestureDetector(
+        onTap: onTap,
+        child: GlassCard(
+          padding: const EdgeInsets.all(13),
+          child: Row(children: [
+            ClipRRect(borderRadius: BorderRadius.circular(10),
+              child: SizedBox(width: 52, height: 52,
+                child: Image.file(File(doc.imagePath), fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: cfg.glow.withValues(alpha: 0.2),
+                    child: Icon(cfg.icon, color: cfg.glow, size: 24))))),
+            const SizedBox(width: 12),
+            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(doc.name, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              Text(doc.docType.label,
+                style: TextStyle(color: cfg.glow, fontSize: 10, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 2),
+              if (hasOcr)
+                Text(doc.ocrText!, maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: LP.label3, fontSize: 10))
+              else
+                const Text('Kein Text erkannt', style: TextStyle(color: LP.label3, fontSize: 10)),
+            ])),
+            Column(children: [
+              GlassBadge(label: hasOcr ? 'OCR ✓' : 'Kein Text',
+                color: hasOcr ? AppTheme.green : LP.label3),
+              const SizedBox(height: 6),
+              if (doc.tasks.isNotEmpty)
+                GlassBadge(label: '${doc.tasks.length} Aufg.', color: AppTheme.coral),
+              const SizedBox(height: 6),
+              const Icon(Icons.chevron_right_rounded, color: LP.label3, size: 18),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  String _docTypeId(DocType t) {
+    switch (t) {
+      case DocType.invoice: return 'tasks';
+      case DocType.govLetter: return 'categories';
+      case DocType.contract: return 'categories';
+      case DocType.insurance: return 'categories';
+      case DocType.appointment: return 'tasks';
+      case DocType.form: return 'ai';
+      default: return 'scan';
+    }
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final VoidCallback onScan;
+  const _EmptyState({required this.onScan});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(color: LP.purple.withValues(alpha: 0.1), shape: BoxShape.circle,
+          border: Border.all(color: LP.purple.withValues(alpha: 0.2), width: 1)),
+        child: const Icon(Icons.document_scanner_outlined, color: LP.purple, size: 44)),
+      const SizedBox(height: 16),
+      const Text('Noch keine Dokumente', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      const SizedBox(height: 6),
+      const Text('Kamera oder Galerie verwenden', style: TextStyle(color: LP.label3, fontSize: 12)),
+      const SizedBox(height: 20),
+      GestureDetector(onTap: onScan,
+        child: Container(padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(color: LP.purple, borderRadius: BorderRadius.circular(14),
+            boxShadow: [BoxShadow(color: LP.purple.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6))]),
+          child: const Text('Erstes Dokument scannen',
+            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700)))),
+    ]));
   }
 }

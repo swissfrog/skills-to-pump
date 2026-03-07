@@ -1,119 +1,223 @@
 import 'package:flutter/material.dart';
-import '../models/models.dart';
-import '../widgets/skill_card.dart';
-import '../screens/scan_screen.dart';
+import '../theme/app_theme.dart';
+import '../services/life_store.dart';
+import '../models/life_models.dart';
+import '../services/premium_service.dart';
+import '../widgets/ad_widgets.dart';
+import 'task_detail_screen.dart';
+import 'categories_screen.dart';
+import 'premium_screen.dart';
 
-class HomeScreen extends StatefulWidget {
-  final Function(int)? onNavigate;
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
 
-  const HomeScreen({super.key, this.onNavigate});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  bool _lessonPlanSelected = true;
-
-  final List<SkillCategory> _categories = const [
-    SkillCategory(
-      id: 'scan',
-      title: 'Scannen',
-      icon: 'camera',
-      color: 'purple',
-    ),
-    SkillCategory(
-      id: 'arsenal',
-      title: 'Arsenal',
-      icon: 'safe',
-      color: 'coral',
-    ),
-    SkillCategory(
-      id: 'coordination',
-      title: 'Koordination',
-      icon: 'joystick',
-      color: 'turquoise',
-    ),
-    SkillCategory(
-      id: 'songs',
-      title: 'Songs',
-      icon: 'turntable',
-      color: 'yellow',
-    ),
-  ];
-
-  void _onCategoryTap(SkillCategory category) {
-    if (category.id == 'scan') {
-      // Open scan screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ScanScreen()),
-      );
-    } else {
-      // Show coming soon for other categories
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${category.title} kommt bald!'),
-          backgroundColor: Colors.grey[800],
+  void _showCompletion(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Text('Task completed', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
         ),
-      );
-    }
+        backgroundColor: LN.success,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Skills To Pump!',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 24),
-              // 2x2 Grid of skill cards
-              Expanded(
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1,
+    final store = LifeStore();
+    final premium = PremiumService();
+    
+    return ListenableBuilder(
+      listenable: store,
+      builder: (context, _) {
+        final nextTask = store.nextTask;
+        final todayTasks = store.todayTasks.take(3).toList();
+
+        return Scaffold(
+          body: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 120,
+                backgroundColor: LN.bg,
+                actions: [
+                  IconButton(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PremiumUpgradeScreen())),
+                    icon: Icon(Icons.star, color: premium.isPremium ? LN.highlight : LN.label3),
                   ),
-                  itemCount: _categories.length,
-                  itemBuilder: (context, index) {
-                    return SkillCard(
-                      category: _categories[index],
-                      onTap: () => _onCategoryTap(_categories[index]),
-                    );
-                  },
+                  const SizedBox(width: 8),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  title: Row(
+                    children: [
+                      Image.asset('assets/images/logo.jpg', width: 28, height: 28),
+                      const SizedBox(width: 8),
+                      Text('LifeNav', style: LN.h2.copyWith(fontSize: 22)),
+                    ],
+                  ),
+                  titlePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
               ),
-              const SizedBox(height: 16),
-              // Navigation row
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: NavigationRow(
-                  leftLabel: 'Lernplan',
-                  rightLabel: 'Fortschritt',
-                  leftSelected: _lessonPlanSelected,
-                  onLeftTap: () => setState(() => _lessonPlanSelected = true),
-                  onRightTap: () => setState(() => _lessonPlanSelected = false),
+              
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    
+                    if (nextTask != null) ...[
+                      Text('NEXT IMPORTANT STEP', style: LN.label),
+                      const SizedBox(height: 12),
+                      _HeroTaskCard(
+                        task: nextTask, 
+                        onDone: () {
+                          store.updateTaskStatus(nextTask.id, TaskStatus.completed);
+                          _showCompletion(context);
+                        }
+                      ),
+                      const SizedBox(height: 32),
+                    ],
+
+                    const AdBanner(),
+
+                    if (todayTasks.isNotEmpty) ...[
+                      Text('TODAY', style: LN.label),
+                      const SizedBox(height: 12),
+                      ...todayTasks.map((t) => _SmallTaskTile(task: t)),
+                      const SizedBox(height: 32),
+                    ],
+
+                    Text('CHOOSE A JOURNEY', style: LN.label),
+                    const SizedBox(height: 12),
+                    _EventGrid(),
+                    
+                    const SizedBox(height: 100),
+                  ]),
                 ),
               ),
-              const SizedBox(height: 16),
             ],
           ),
+        );
+      },
+    );
+  }
+}
+
+class _HeroTaskCard extends StatelessWidget {
+  final LifeTask task;
+  final VoidCallback onDone;
+  const _HeroTaskCard({required this.task, required this.onDone});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: LN.primary,
+        borderRadius: LN.r24,
+        boxShadow: LN.shadow(LN.primary),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+              IconButton(
+                onPressed: onDone,
+                icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 32),
+              )
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(task.title, style: LN.h2.copyWith(color: Colors.white)),
+          const SizedBox(height: 8),
+          Text(task.explanation, 
+            style: LN.bodySmall.copyWith(color: Colors.white70),
+            maxLines: 2,
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task))),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: LN.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('View Guide'),
+          )
+        ],
+      ),
+    );
+  }
+}
+
+class _SmallTaskTile extends StatelessWidget {
+  final LifeTask task;
+  const _SmallTaskTile({required this.task});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: LN.surface, borderRadius: LN.r16),
+      child: Row(
+        children: [
+          const Icon(Icons.radio_button_off, color: LN.label2, size: 20),
+          const SizedBox(width: 16),
+          Expanded(child: Text(task.title, style: LN.body.copyWith(fontWeight: FontWeight.w500))),
+          const Icon(Icons.chevron_right, color: LN.label3),
+        ],
+      ),
+    );
+  }
+}
+
+class _EventGrid extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      mainAxisSpacing: 12,
+      crossAxisSpacing: 12,
+      childAspectRatio: 1.5,
+      children: [
+        _EventButton(type: LifeEventType.move, icon: Icons.home_outlined),
+        _EventButton(type: LifeEventType.newJob, icon: Icons.work_outline),
+        _EventButton(type: LifeEventType.taxYear, icon: Icons.description_outlined),
+        _EventButton(type: LifeEventType.buyCar, icon: Icons.directions_car_outlined),
+      ],
+    );
+  }
+}
+
+class _EventButton extends StatelessWidget {
+  final LifeEventType type; final IconData icon;
+  const _EventButton({required this.type, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+      child: Container(
+        decoration: BoxDecoration(color: LN.surface2, borderRadius: LN.r16),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: LN.primary),
+            const SizedBox(height: 8),
+            Text(type.label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+          ],
         ),
       ),
     );
