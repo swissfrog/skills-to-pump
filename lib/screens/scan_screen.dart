@@ -27,6 +27,10 @@ class _ScanScreenState extends State<ScanScreen> {
   String _step = '';
   int _stepIdx = 0;
 
+  void _onStoreChange() {
+    if (mounted) setState(() {});
+  }
+
   static const _steps = [
     'Bild laden…', 'Bild speichern…', 'OCR läuft…', 'KI analysiert…', 'Fertig!'
   ];
@@ -34,14 +38,14 @@ class _ScanScreenState extends State<ScanScreen> {
   @override
   void initState() {
     super.initState();
-    _store.addListener(() { if (mounted) setState(() {}); });
+    _store.addListener(_onStoreChange);
     _requestPermissions();
   }
 
   @override
   void dispose() {
     _ocr.close();
-    _store.removeListener(() {});
+    _store.removeListener(_onStoreChange);
     super.dispose();
   }
 

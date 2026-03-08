@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme/app_theme.dart';
+import 'services/life_store.dart';
 import 'screens/splash_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/tasks_screen.dart';
 import 'screens/categories_screen.dart';
+import 'screens/event_detail_screen.dart';
 import 'screens/upload_screen.dart';
 import 'screens/profile_screen.dart';
 
@@ -14,6 +16,8 @@ void main() {
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
+  // Pre-initialize LifeStore so persistence loads early
+  LifeStore();
   runApp(const LifeNavApp());
 }
 

@@ -78,6 +78,8 @@ class LifeTask {
   final LifeEventType? eventType;
   final String? tip;
   final int xpReward;
+  /// Estimated time saved in minutes when completing this task (research, bureaucracy, etc.)
+  final int timeSaved;
 
   const LifeTask({
     required this.id,
@@ -92,6 +94,7 @@ class LifeTask {
     this.eventType,
     this.tip,
     this.xpReward = 15,
+    this.timeSaved = 30,
   });
 
   LifeTask copyWith({TaskStatus? status}) => LifeTask(
@@ -100,6 +103,28 @@ class LifeTask {
     steps: steps, priority: priority,
     status: status ?? this.status,
     deadline: deadline, eventType: eventType, tip: tip, xpReward: xpReward,
+    timeSaved: timeSaved,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'title': title, 'description': description, 'explanation': explanation,
+    'requiredDocs': requiredDocs, 'steps': steps,
+    'priority': priority.index, 'status': status.index,
+    'deadline': deadline?.toIso8601String(), 'eventType': eventType?.index,
+    'tip': tip, 'xpReward': xpReward, 'timeSaved': timeSaved,
+  };
+
+  static LifeTask fromJson(Map<String, dynamic> j) => LifeTask(
+    id: j['id'] as String, title: j['title'] as String,
+    description: j['description'] as String, explanation: j['explanation'] as String,
+    requiredDocs: List<String>.from(j['requiredDocs'] ?? []),
+    steps: List<String>.from(j['steps'] ?? []),
+    priority: TaskPriority.values[j['priority'] as int? ?? 1],
+    status: TaskStatus.values[j['status'] as int? ?? 0],
+    deadline: j['deadline'] != null ? DateTime.tryParse(j['deadline'] as String) : null,
+    eventType: j['eventType'] != null ? LifeEventType.values[j['eventType'] as int] : null,
+    tip: j['tip'] as String?, xpReward: j['xpReward'] as int? ?? 15,
+    timeSaved: j['timeSaved'] as int? ?? 30,
   );
 
   bool get isOverdue =>
@@ -134,4 +159,19 @@ class LifeEvent {
   int get completedCount => tasks.where((t) => t.status.isDone).length;
   double get progress => tasks.isEmpty ? 0 : completedCount / tasks.length;
   bool get isCompleted => completedCount == tasks.length;
+  /// Total minutes saved by completing all done tasks in this event
+  int get timeSavedFromCompletedTasks =>
+      tasks.where((t) => t.status.isDone).fold(0, (sum, t) => sum + t.timeSaved);
+
+  Map<String, dynamic> toJson() => {
+    'id': id, 'type': type.index, 'startedAt': startedAt.toIso8601String(),
+    'tasks': tasks.map((t) => t.toJson()).toList(),
+  };
+
+  static LifeEvent fromJson(Map<String, dynamic> j) => LifeEvent(
+    id: j['id'] as String,
+    type: LifeEventType.values[j['type'] as int],
+    startedAt: DateTime.parse(j['startedAt'] as String),
+    tasks: (j['tasks'] as List).map((t) => LifeTask.fromJson(t as Map<String, dynamic>)).toList(),
+  );
 }

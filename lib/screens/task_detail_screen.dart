@@ -4,10 +4,13 @@ import '../models/life_models.dart';
 import '../services/life_store.dart';
 import '../services/premium_service.dart';
 import '../widgets/partner_widgets.dart';
+import 'event_completion_screen.dart';
 
 class TaskDetailScreen extends StatelessWidget {
   final LifeTask task;
-  const TaskDetailScreen({super.key, required this.task});
+  final void Function(LifeEvent? completedEvent)? onCompletedEvent;
+
+  const TaskDetailScreen({super.key, required this.task, this.onCompletedEvent});
 
   @override
   Widget build(BuildContext context) {
@@ -67,8 +70,25 @@ class TaskDetailScreen extends StatelessWidget {
               height: 60,
               child: ElevatedButton(
                 onPressed: () {
-                  store.updateTaskStatus(task.id, isDone ? TaskStatus.open : TaskStatus.completed);
-                  Navigator.pop(context);
+                  if (isDone) {
+                    store.updateTaskStatus(task.id, TaskStatus.open);
+                    Navigator.pop(context);
+                  } else {
+                    final completed = store.updateTaskStatus(task.id, TaskStatus.completed);
+                    if (onCompletedEvent != null) {
+                      onCompletedEvent!(completed);
+                    } else {
+                      final navigator = Navigator.of(context);
+                      navigator.pop();
+                      if (completed != null) {
+                        navigator.push(
+                          MaterialPageRoute(
+                            builder: (_) => EventCompletionScreen(event: completed),
+                          ),
+                        );
+                      }
+                    }
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isDone ? LN.surface2 : LN.primary,

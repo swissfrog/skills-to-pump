@@ -84,6 +84,8 @@ class ScannedDocument {
   final List<DocTask> tasks;
   final List<TimelineEvent> timeline;
   final bool hasForm;
+  /// Links this document to a required doc from LifeTask.requiredDocs
+  final String? linkedRequiredDoc;
 
   const ScannedDocument({
     required this.id,
@@ -100,12 +102,14 @@ class ScannedDocument {
     this.tasks = const [],
     this.timeline = const [],
     this.hasForm = false,
+    this.linkedRequiredDoc,
   });
 
   ScannedDocument copyWith({
     String? aiSummary, String? aiExplanation, String? replyDraft,
     DocCategory? category, DocType? docType, String? sender,
     List<DocTask>? tasks, List<TimelineEvent>? timeline, bool? hasForm,
+    String? linkedRequiredDoc,
   }) => ScannedDocument(
     id: id, name: name, imagePath: imagePath, scannedAt: scannedAt,
     ocrText: ocrText,
@@ -118,6 +122,7 @@ class ScannedDocument {
     tasks: tasks ?? this.tasks,
     timeline: timeline ?? this.timeline,
     hasForm: hasForm ?? this.hasForm,
+    linkedRequiredDoc: linkedRequiredDoc ?? this.linkedRequiredDoc,
   );
 }
 

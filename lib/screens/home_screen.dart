@@ -5,7 +5,7 @@ import '../models/life_models.dart';
 import '../services/premium_service.dart';
 import '../widgets/ad_widgets.dart';
 import 'task_detail_screen.dart';
-import 'categories_screen.dart';
+import 'event_detail_screen.dart';
 import 'premium_screen.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -89,13 +89,19 @@ class HomeScreen extends StatelessWidget {
                     if (todayTasks.isNotEmpty) ...[
                       Text('TODAY', style: LN.label),
                       const SizedBox(height: 12),
-                      ...todayTasks.map((t) => _SmallTaskTile(task: t)),
+                      ...todayTasks.map((t) => _SmallTaskTile(
+                        task: t,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => TaskDetailScreen(task: t)),
+                        ),
+                      )),
                       const SizedBox(height: 32),
                     ],
 
                     Text('CHOOSE A JOURNEY', style: LN.label),
                     const SizedBox(height: 12),
-                    _EventGrid(),
+                    _EventGrid(store: store),
                     
                     const SizedBox(height: 100),
                   ]),
@@ -161,27 +167,34 @@ class _HeroTaskCard extends StatelessWidget {
 
 class _SmallTaskTile extends StatelessWidget {
   final LifeTask task;
-  const _SmallTaskTile({required this.task});
+  final VoidCallback onTap;
+  const _SmallTaskTile({required this.task, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: LN.surface, borderRadius: LN.r16),
-      child: Row(
-        children: [
-          const Icon(Icons.radio_button_off, color: LN.label2, size: 20),
-          const SizedBox(width: 16),
-          Expanded(child: Text(task.title, style: LN.body.copyWith(fontWeight: FontWeight.w500))),
-          const Icon(Icons.chevron_right, color: LN.label3),
-        ],
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: LN.surface, borderRadius: LN.r16),
+        child: Row(
+          children: [
+            const Icon(Icons.radio_button_off, color: LN.label2, size: 20),
+            const SizedBox(width: 16),
+            Expanded(child: Text(task.title, style: LN.body.copyWith(fontWeight: FontWeight.w500))),
+            const Icon(Icons.chevron_right, color: LN.label3),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _EventGrid extends StatelessWidget {
+  final LifeStore store;
+  const _EventGrid({required this.store});
+
   @override
   Widget build(BuildContext context) {
     return GridView.count(
@@ -192,23 +205,44 @@ class _EventGrid extends StatelessWidget {
       crossAxisSpacing: 12,
       childAspectRatio: 1.5,
       children: [
-        _EventButton(type: LifeEventType.move, icon: Icons.home_outlined),
-        _EventButton(type: LifeEventType.newJob, icon: Icons.work_outline),
-        _EventButton(type: LifeEventType.taxYear, icon: Icons.description_outlined),
-        _EventButton(type: LifeEventType.buyCar, icon: Icons.directions_car_outlined),
+        _EventButton(store: store, type: LifeEventType.move, icon: Icons.home_outlined),
+        _EventButton(store: store, type: LifeEventType.newJob, icon: Icons.work_outline),
+        _EventButton(store: store, type: LifeEventType.taxYear, icon: Icons.description_outlined),
+        _EventButton(store: store, type: LifeEventType.buyCar, icon: Icons.directions_car_outlined),
       ],
     );
   }
 }
 
 class _EventButton extends StatelessWidget {
-  final LifeEventType type; final IconData icon;
-  const _EventButton({required this.type, required this.icon});
+  final LifeStore store;
+  final LifeEventType type;
+  final IconData icon;
+  const _EventButton({required this.store, required this.type, required this.icon});
 
   @override
   Widget build(BuildContext context) {
+    final isActive = store.hasEvent(type);
+
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+      onTap: () {
+        if (isActive) {
+          final event = store.events.firstWhere((e) => e.type == type);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+          );
+        } else {
+          final event = store.startEvent(type);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${type.label} gestartet!'), behavior: SnackBarBehavior.floating),
+          );
+        }
+      },
       child: Container(
         decoration: BoxDecoration(color: LN.surface2, borderRadius: LN.r16),
         child: Column(

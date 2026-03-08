@@ -24,6 +24,12 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>LifeNav benötigt Kamerazugriff zum Scannen von Dokumenten.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>LifeNav benötigt Zugriff auf die Fotobibliothek zum Importieren von Dokumenten.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>LifeNav speichert gescannte Dokumente in der Fotobibliothek.</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

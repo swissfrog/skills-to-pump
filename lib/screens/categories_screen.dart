@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/life_models.dart';
 import '../services/life_store.dart';
-import 'doc_detail_screen.dart';
+import 'event_detail_screen.dart';
 
 class CategoriesScreen extends StatelessWidget {
   const CategoriesScreen({super.key});
@@ -34,10 +34,20 @@ class _EventCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        if (!isActive) {
-          store.startEvent(type);
+        if (isActive) {
+          final event = store.events.firstWhere((e) => e.type == type);
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
+          );
+        } else {
+          final event = store.startEvent(type);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${type.label} gestartet!')),
+            SnackBar(content: Text('${type.label} gestartet!'), behavior: SnackBarBehavior.floating),
+          );
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => EventDetailScreen(event: event)),
           );
         }
       },

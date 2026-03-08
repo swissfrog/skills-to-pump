@@ -38,6 +38,7 @@ class EventTemplates {
       ],
       priority: TaskPriority.urgent,
       eventType: LifeEventType.move,
+      timeSaved: 30,
     ),
     LifeTask(
       id: 'de_move_2',
@@ -52,6 +53,7 @@ class EventTemplates {
       ],
       priority: TaskPriority.high,
       eventType: LifeEventType.move,
+      timeSaved: 20,
     ),
     LifeTask(
       id: 'de_move_3',
@@ -66,6 +68,7 @@ class EventTemplates {
       ],
       priority: TaskPriority.high,
       eventType: LifeEventType.move,
+      timeSaved: 45,
     ),
     LifeTask(
       id: 'de_move_4',
@@ -80,6 +83,7 @@ class EventTemplates {
       ],
       priority: TaskPriority.medium,
       eventType: LifeEventType.move,
+      timeSaved: 30,
     ),
     LifeTask(
       id: 'de_move_5',
@@ -94,6 +98,7 @@ class EventTemplates {
       ],
       priority: TaskPriority.low,
       eventType: LifeEventType.move,
+      timeSaved: 15,
     ),
     LifeTask(
       id: 'de_move_6',
@@ -108,6 +113,7 @@ class EventTemplates {
       ],
       priority: TaskPriority.medium,
       eventType: LifeEventType.move,
+      timeSaved: 60,
     ),
   ];
 
@@ -122,6 +128,7 @@ class EventTemplates {
       steps: ['Steuer-ID in alten Lohnabrechnungen suchen', 'An HR-Abteilung senden'],
       priority: TaskPriority.urgent,
       eventType: LifeEventType.newJob,
+      timeSaved: 30,
     ),
     LifeTask(
       id: 'de_job_2',
@@ -132,6 +139,7 @@ class EventTemplates {
       steps: ['Kopie des Ausweises erstellen', 'Bei Einstellung abgeben'],
       priority: TaskPriority.high,
       eventType: LifeEventType.newJob,
+      timeSaved: 20,
     ),
     LifeTask(
       id: 'de_job_3',
@@ -142,6 +150,7 @@ class EventTemplates {
       steps: ['Krankenkasse online oder per App kontaktieren', 'Bescheinigung für neuen Job anfordern', 'Link/Datei an HR weiterleiten'],
       priority: TaskPriority.high,
       eventType: LifeEventType.newJob,
+      timeSaved: 25,
     ),
   ];
 
@@ -156,6 +165,7 @@ class EventTemplates {
       steps: ['Tarife vergleichen', 'Versicherung abschließen', 'eVB-Code per SMS/Email erhalten'],
       priority: TaskPriority.urgent,
       eventType: LifeEventType.buyCar,
+      timeSaved: 30,
     ),
     LifeTask(
       id: 'de_car_2',
@@ -166,6 +176,7 @@ class EventTemplates {
       steps: ['Online-Termin buchen', 'Kennzeichen reservieren', 'Zum Amt gehen'],
       priority: TaskPriority.high,
       eventType: LifeEventType.buyCar,
+      timeSaved: 90,
     ),
   ];
 
@@ -180,6 +191,7 @@ class EventTemplates {
       steps: ['Rechnungen chronologisch sortieren', 'Kilometerpauschale berechnen', 'Fortbildungskosten addieren'],
       priority: TaskPriority.medium,
       eventType: LifeEventType.taxYear,
+      timeSaved: 30,
     ),
     LifeTask(
       id: 'de_tax_2',
@@ -190,6 +202,7 @@ class EventTemplates {
       steps: ['Bruttolohn und einbehaltene Steuer prüfen', 'Daten in Steuer-Software übertragen'],
       priority: TaskPriority.high,
       eventType: LifeEventType.taxYear,
+      timeSaved: 45,
     ),
   ];
 }
