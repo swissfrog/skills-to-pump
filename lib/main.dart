@@ -7,7 +7,6 @@ import 'screens/home_screen.dart';
 import 'screens/tasks_screen.dart';
 import 'screens/categories_screen.dart';
 import 'screens/event_detail_screen.dart';
-import 'screens/goals_screen.dart';
 import 'screens/upload_screen.dart';
 import 'screens/profile_screen.dart';
 
@@ -33,17 +32,6 @@ class LifeNavApp extends StatelessWidget {
     routes: {
       '/': (context) => const SplashScreen(),
       '/home': (context) => const MainNavigator(),
-      '/goals': (context) => const MainNavigator(),
-      '/event': (context) => const MainNavigator(),
-    },
-    onGenerateRoute: (settings) {
-      final uri = Uri.parse(settings.uri.toString());
-      if (uri.pathSegments.length == 2 && uri.pathSegments[0] == 'event') {
-        return MaterialPageRoute(
-          builder: (context) => EventDetailScreen(eventId: uri.pathSegments[1]),
-        );
-      }
-      return null;
     },
   );
 }
