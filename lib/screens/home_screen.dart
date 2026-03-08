@@ -34,6 +34,13 @@ class HomeScreen extends StatelessWidget {
     final store = LifeStore();
     final premium = PremiumService();
     
+    // Show loading while store initializes
+    if (!store.isLoaded) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    
     return ListenableBuilder(
       listenable: store,
       builder: (context, _) {

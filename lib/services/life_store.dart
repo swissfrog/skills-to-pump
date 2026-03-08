@@ -40,6 +40,8 @@ class LifeStore extends ChangeNotifier {
   }
 
   List<LifeEvent> get events => List.unmodifiable(_events);
+  
+  bool get isLoaded => _loaded;
 
   List<LifeTask> get allTasks =>
       _events.expand((e) => e.tasks).toList()
