@@ -115,6 +115,31 @@ class LifeStore extends ChangeNotifier {
 
   bool hasEvent(LifeEventType type) => _events.any((e) => e.type == type);
 
+  // ── Simple task interface for tasks_screen ─────────────────────────────────
+  List<Map<String, dynamic>> getTasks() {
+    return allTasks.map((t) => {
+      'key': t.id,
+      'title': t.title,
+      'category': t.eventType?.label ?? 'General',
+      'completed': t.status.isDone,
+    }).toList();
+  }
+
+  void updateTask(dynamic key, Map<String, dynamic> task) {
+    final taskId = key is String ? key : key.toString();
+    final completed = task['completed'] as bool? ?? false;
+    // Find the TaskStatus values
+    updateTaskStatus(taskId, completed ? TaskStatus.completed : TaskStatus.inProgress);
+  }
+
+  void deleteTask(dynamic key) {
+    // Not implemented - would need to find and remove the task
+  }
+
+  void addTask(Map<String, dynamic> task) {
+    // Not implemented - would need to create a new task
+  }
+
   // ── Demo seed ────────────────────────────────────────────────────────────────
   void _seedDemoData() {
     final moveTasks = EventTemplates.getTasksForEvent(LifeEventType.move);

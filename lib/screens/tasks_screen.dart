@@ -13,7 +13,8 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   Widget build(BuildContext context) {
-    var tasks = LifeStore.getTasks();
+    final store = LifeStore();
+    var tasks = store.getTasks();
     if (_filter == 'pending') tasks = tasks.where((t) => t['completed'] != true).toList();
     if (_filter == 'completed') tasks = tasks.where((t) => t['completed'] == true).toList();
 
@@ -56,7 +57,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     value: task['completed'] == true,
                     onChanged: (v) {
                       task['completed'] = v;
-                      LifeStore.updateTask(task['key'] ?? i, task);
+                      store.updateTask(task['key'] ?? i, task);
                       setState(() {});
                     },
                     title: Text(task['title'] ?? 'Untitled'),
@@ -64,7 +65,7 @@ class _TasksScreenState extends State<TasksScreen> {
                     secondary: IconButton(
                       icon: const Icon(Icons.delete_outline),
                       onPressed: () {
-                        LifeStore.deleteTask(task['key'] ?? i);
+                        store.deleteTask(task['key'] ?? i);
                         setState(() {});
                       },
                     ),
@@ -80,6 +81,7 @@ class _TasksScreenState extends State<TasksScreen> {
   }
 
   void _showAddTaskDialog() {
+    final store = LifeStore();
     final ctrl = TextEditingController();
     showDialog(
       context: context,
@@ -91,7 +93,7 @@ class _TasksScreenState extends State<TasksScreen> {
           ElevatedButton(
             onPressed: () {
               if (ctrl.text.isNotEmpty) {
-                LifeStore.addTask({'title': ctrl.text, 'completed': false, 'category': 'General'});
+                store.addTask({'title': ctrl.text, 'completed': false, 'category': 'General'});
                 Navigator.pop(context);
                 setState(() {});
               }

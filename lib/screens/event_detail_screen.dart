@@ -188,7 +188,7 @@ class _TaskTile extends StatelessWidget {
                     style: LN.body.copyWith(
                       fontWeight: FontWeight.w600,
                       decoration: isDone ? TextDecoration.lineThrough : null,
-                      color: isDone ? LN.label3 : LN.label1,
+                      color: isDone ? LN.label3 : Colors.white,
                     ),
                   ),
                   if (task.requiredDocs.isNotEmpty)

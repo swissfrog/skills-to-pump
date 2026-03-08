@@ -33,7 +33,7 @@ class ProfileScreen extends StatelessWidget {
                   child: const Icon(Icons.person, color: Colors.white, size: 50),
                 ),
                 const SizedBox(height: 16),
-                const Text('Sven', style: LN.h2),
+                Text('Sven', style: LN.h2),
               ],
             ),
           ),
@@ -116,7 +116,7 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(width: 12),
               _Stat(label: 'Open', value: '${s.openTasks.length}', color: LN.highlight),
               const SizedBox(width: 12),
-              _Stat(label: 'Events', value: '${s.events.length}', color: LN.info),
+              _Stat(label: 'Events', value: '${s.events.length}', color: LN.label2),
             ],
           ),
 
