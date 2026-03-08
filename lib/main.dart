@@ -1,14 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme/app_theme.dart';
-import 'services/life_store.dart';
-import 'screens/splash_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/tasks_screen.dart';
-import 'screens/categories_screen.dart';
-import 'screens/event_detail_screen.dart';
-import 'screens/upload_screen.dart';
-import 'screens/profile_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,8 +8,6 @@ void main() {
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
   ));
-  // Pre-initialize LifeStore so persistence loads early
-  LifeStore();
   runApp(const LifeNavApp());
 }
 
@@ -28,51 +18,27 @@ class LifeNavApp extends StatelessWidget {
     title: 'LifeNav',
     theme: LN.theme,
     debugShowCheckedModeBanner: false,
-    initialRoute: '/',
-    routes: {
-      '/': (context) => const SplashScreen(),
-      '/home': (context) => const MainNavigator(),
-    },
+    home: const HomeScreen(),
   );
 }
 
-class MainNavigator extends StatefulWidget {
-  const MainNavigator({super.key});
-  @override
-  State<MainNavigator> createState() => _MainNavigatorState();
-}
-
-class _MainNavigatorState extends State<MainNavigator> {
-  int _idx = 0;
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const TasksScreen(),
-    const CategoriesScreen(),
-    const UploadScreen(),
-    const ProfileScreen(),
-  ];
-
+class HomeScreen extends StatelessWidget {
+  const HomeScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _idx, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _idx,
-        onTap: (i) => setState(() => _idx = i),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: LN.surface,
-        selectedItemColor: LN.primary,
-        unselectedItemColor: LN.label3,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.check_circle_outline), activeIcon: Icon(Icons.check_circle), label: 'Tasks'),
-          BottomNavigationBarItem(icon: Icon(Icons.explore_outlined), activeIcon: Icon(Icons.explore), label: 'Events'),
-          BottomNavigationBarItem(icon: Icon(Icons.description_outlined), activeIcon: Icon(Icons.description), label: 'Documents'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Profile'),
-        ],
+      backgroundColor: LN.bg,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.explore, size: 80, color: LN.primary),
+            const SizedBox(height: 24),
+            Text('LifeNav', style: LN.h2),
+            const SizedBox(height: 16),
+            const Text('App loaded!', style: TextStyle(color: Colors.white)),
+          ],
+        ),
       ),
     );
   }
