@@ -11,12 +11,16 @@ class UserProgress extends ChangeNotifier {
   int _lessonsToday = 2;
   int _lessonsTotal = 18;
   int _tasksCompleted = 5;
+  int _timeSavedMinutes = 0;
 
   int get xp => _xp;
   int get streak => _streak;
   int get lessonsToday => _lessonsToday;
   int get lessonsTotal => _lessonsTotal;
   int get tasksCompleted => _tasksCompleted;
+  int get timeSavedMinutes => _timeSavedMinutes;
+  int get timeSavedHours => (_timeSavedMinutes / 60).floor();
+  int get timeSavedRemainingMinutes => _timeSavedMinutes % 60;
   int get level => (_xp / 100).floor() + 1;
   double get levelProgress => (_xp % 100) / 100.0;
   int get xpToNext => 100 - (_xp % 100);
@@ -42,6 +46,11 @@ class UserProgress extends ChangeNotifier {
   void completeTask() {
     _tasksCompleted++;
     addXp(10);
+  }
+
+  void addTimeSaved(int minutes) {
+    _timeSavedMinutes += minutes;
+    notifyListeners();
   }
 
   // Category progress (mock)

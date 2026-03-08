@@ -1,195 +1,61 @@
 import '../models/life_models.dart';
+import '../models/json_data.dart';
+import 'data_service.dart';
 
 /// Central template system for life events.
-/// Can be extended to support multiple countries.
+/// Now loads from JSON data instead of hardcoded values.
 class EventTemplates {
   
+  /// Get tasks for an event type - loads from JSON
   static List<LifeTask> getTasksForEvent(LifeEventType type, {String country = 'DE'}) {
-    // Current focus is on Germany (DE) as requested
-    if (country == 'DE') {
-      switch (type) {
-        case LifeEventType.move:
-          return _deMoveTemplates;
-        case LifeEventType.newJob:
-          return _deJobTemplates;
-        case LifeEventType.buyCar:
-          return _deCarTemplates;
-        case LifeEventType.taxYear:
-          return _deTaxTemplates;
-        default:
-          return [];
-      }
-    }
-    return [];
+    // Map LifeEventType to the string ID used in JSON
+    final eventId = _typeToId(type);
+    if (eventId == null) return [];
+
+    // Get tasks from DataService (which loads from JSON)
+    final dataService = DataService.instance;
+    final jsonTasks = dataService.getTasksForEvent(eventId);
+
+    // Convert JsonTask to LifeTask
+    return jsonTasks.map((jt) => _convertJsonTaskToLifeTask(jt, type)).toList();
   }
 
-  // ── GERMANY: MOVE ──────────────────────────────────────────────────────────
-  static final List<LifeTask> _deMoveTemplates = [
-    LifeTask(
-      id: 'de_move_1',
-      title: 'Wohnsitz ummelden (Bürgeramt)',
-      description: 'Gesetzliche Meldepflicht beim Einwohnermeldeamt.',
-      explanation: 'In Deutschland musst du dich innerhalb von 14 Tagen nach Einzug ummelden.',
-      requiredDocs: ['Personalausweis oder Reisepass', 'Wohnungsgeberbestätigung (vom Vermieter)'],
-      steps: [
-        'Termin beim Bürgeramt online vereinbaren',
-        'Wohnungsgeberbestätigung unterschreiben lassen',
-        'Persönlich zum Termin erscheinen'
-      ],
-      priority: TaskPriority.urgent,
-      eventType: LifeEventType.move,
-    ),
-    LifeTask(
-      id: 'de_move_2',
-      title: 'Nachsendeauftrag einrichten',
-      description: 'Post von der alten zur neuen Adresse umleiten.',
-      explanation: 'Verhindert, dass wichtige Briefe im alten Briefkasten landen.',
-      requiredDocs: ['Zahlungsmittel'],
-      steps: [
-        'Website der Deutschen Post besuchen',
-        'Laufzeit wählen (empfohlen: 12 Monate)',
-        'Auftrag online bezahlen'
-      ],
-      priority: TaskPriority.high,
-      eventType: LifeEventType.move,
-    ),
-    LifeTask(
-      id: 'de_move_3',
-      title: 'Strom & Gas umziehen',
-      description: 'Zählerstände melden und Verträge aktualisieren.',
-      explanation: 'Du musst deinen Energieversorger über den Auszug und Einzug informieren.',
-      requiredDocs: ['Zählernummer (alt & neu)', 'Zählerstände'],
-      steps: [
-        'Zählerstand in der alten Wohnung am Tag der Übergabe fotografieren',
-        'Versorger kontaktieren und "Umzug" melden',
-        'Zählerstand in der neuen Wohnung melden'
-      ],
-      priority: TaskPriority.high,
-      eventType: LifeEventType.move,
-    ),
-    LifeTask(
-      id: 'de_move_4',
-      title: 'Internet & Telefon ummelden',
-      description: 'Vertrag an die neue Adresse mitnehmen.',
-      explanation: 'Oft ist ein Technikereinsatz nötig, daher frühzeitig (4-6 Wochen vorher) melden.',
-      requiredDocs: ['Kundennummer', 'Anschlussdetails der neuen Wohnung'],
-      steps: [
-        'Verfügbarkeit an der neuen Adresse prüfen',
-        'Umzugsservice des Anbieters beauftragen',
-        'Termin für die Freischaltung bestätigen'
-      ],
-      priority: TaskPriority.medium,
-      eventType: LifeEventType.move,
-    ),
-    LifeTask(
-      id: 'de_move_5',
-      title: 'Rundfunkbeitrag (GEZ) anpassen',
-      description: 'Wohnung bei ARD/ZDF/Deutschlandradio ummelden.',
-      explanation: 'Der Beitrag wird pro Wohnung gezahlt. Bei Zusammenzug kann ein Konto gelöscht werden.',
-      requiredDocs: ['Beitragsnummer'],
-      steps: [
-        'Online-Formular auf rundfunkbeitrag.de aufrufen',
-        'Adressänderung eingeben',
-        'Bestätigung abwarten'
-      ],
-      priority: TaskPriority.low,
-      eventType: LifeEventType.move,
-    ),
-    LifeTask(
-      id: 'de_move_6',
-      title: 'KFZ-Ummeldung',
-      description: 'Adresse im Fahrzeugschein ändern.',
-      explanation: 'Wenn du in einen anderen Zulassungsbezirk ziehst, brauchst du ggf. neue Kennzeichen.',
-      requiredDocs: ['Fahrzeugschein (Zulassungsbescheinigung I)', 'eVB-Nummer der Versicherung', 'TÜV-Bericht'],
-      steps: [
-        'Termin bei der Zulassungsstelle buchen',
-        'Ggf. neue Schilder prägen lassen',
-        'Unterlagen vorlegen'
-      ],
-      priority: TaskPriority.medium,
-      eventType: LifeEventType.move,
-    ),
-  ];
+  /// Map LifeEventType to JSON event ID
+  static String? _typeToId(LifeEventType type) {
+    switch (type) {
+      case LifeEventType.move:
+        return 'move';
+      case LifeEventType.newJob:
+        return 'newJob';
+      case LifeEventType.buyCar:
+        return 'buyCar';
+      case LifeEventType.taxYear:
+        return 'taxYear';
+      case LifeEventType.study:
+        return 'study';
+      case LifeEventType.family:
+        return 'family';
+    }
+  }
 
-  // ── GERMANY: NEW JOB ───────────────────────────────────────────────────────
-  static final List<LifeTask> _deJobTemplates = [
-    LifeTask(
-      id: 'de_job_1',
-      title: 'Steuer-ID einreichen',
-      description: 'Arbeitgeber benötigt deine Identifikationsnummer.',
-      explanation: 'Zur korrekten Berechnung der Lohnsteuer (ELStAM).',
-      requiredDocs: ['Schreiben vom Bundeszentralamt für Steuern'],
-      steps: ['Steuer-ID in alten Lohnabrechnungen suchen', 'An HR-Abteilung senden'],
-      priority: TaskPriority.urgent,
-      eventType: LifeEventType.newJob,
-    ),
-    LifeTask(
-      id: 'de_job_2',
-      title: 'Sozialversicherungsausweis vorlegen',
-      description: 'Nachweis der Rentenversicherungsnummer.',
-      explanation: 'Dein Arbeitgeber meldet dich damit bei der Sozialversicherung an.',
-      requiredDocs: ['Sozialversicherungsausweis'],
-      steps: ['Kopie des Ausweises erstellen', 'Bei Einstellung abgeben'],
-      priority: TaskPriority.high,
-      eventType: LifeEventType.newJob,
-    ),
-    LifeTask(
-      id: 'de_job_3',
-      title: 'Krankenkasse informieren',
-      description: 'Mitgliedsbescheinigung für den Arbeitgeber anfordern.',
-      explanation: 'Der Arbeitgeber muss wissen, wo du versichert bist.',
-      requiredDocs: ['Versichertenkarte'],
-      steps: ['Krankenkasse online oder per App kontaktieren', 'Bescheinigung für neuen Job anfordern', 'Link/Datei an HR weiterleiten'],
-      priority: TaskPriority.high,
-      eventType: LifeEventType.newJob,
-    ),
-  ];
+  /// Convert JSON task model to the app's LifeTask model
+  static LifeTask _convertJsonTaskToLifeTask(JsonTask jt, LifeEventType eventType) {
+    return LifeTask(
+      id: jt.id,
+      title: jt.title,
+      description: jt.description,
+      explanation: jt.explanation ?? '',
+      requiredDocs: jt.requiredDocuments,
+      steps: jt.steps,
+      priority: jt.priorityEnum,
+      eventType: eventType,
+      xpReward: jt.xpReward,
+      timeSaved: jt.timeSaved,
+    );
+  }
 
-  // ── GERMANY: BUY CAR ───────────────────────────────────────────────────────
-  static final List<LifeTask> _deCarTemplates = [
-    LifeTask(
-      id: 'de_car_1',
-      title: 'KFZ-Versicherung (eVB)',
-      description: 'Elektronische Versicherungsbestätigung anfordern.',
-      explanation: 'Noch vor der Zulassung muss Versicherungsschutz bestehen.',
-      requiredDocs: ['Fahrzeugdaten'],
-      steps: ['Tarife vergleichen', 'Versicherung abschließen', 'eVB-Code per SMS/Email erhalten'],
-      priority: TaskPriority.urgent,
-      eventType: LifeEventType.buyCar,
-    ),
-    LifeTask(
-      id: 'de_car_2',
-      title: 'Fahrzeug zulassen',
-      description: 'Gang zur Zulassungsstelle.',
-      explanation: 'Hier erhältst du das Kennzeichen und die offiziellen Stempel.',
-      requiredDocs: ['eVB-Nummer', 'Ausweis', 'Zulassungsbescheinigung Teil I & II', 'TÜV-Bericht', 'SEPA-Mandat für Kfz-Steuer'],
-      steps: ['Online-Termin buchen', 'Kennzeichen reservieren', 'Zum Amt gehen'],
-      priority: TaskPriority.high,
-      eventType: LifeEventType.buyCar,
-    ),
-  ];
-
-  // ── GERMANY: TAX YEAR ──────────────────────────────────────────────────────
-  static final List<LifeTask> _deTaxTemplates = [
-    LifeTask(
-      id: 'de_tax_1',
-      title: 'Werbungskosten sammeln',
-      description: 'Belege für berufliche Ausgaben ordnen.',
-      explanation: 'Arbeitsmittel, Fortbildungen und Fahrtkosten mindern die Steuerlast.',
-      requiredDocs: ['Quittungen', 'Invoices', 'Fahrtenbuch'],
-      steps: ['Rechnungen chronologisch sortieren', 'Kilometerpauschale berechnen', 'Fortbildungskosten addieren'],
-      priority: TaskPriority.medium,
-      eventType: LifeEventType.taxYear,
-    ),
-    LifeTask(
-      id: 'de_tax_2',
-      title: 'Lohnsteuerbescheinigung prüfen',
-      description: 'Jahresabrechnung vom Arbeitgeber kontrollieren.',
-      explanation: 'Wird am Ende des Jahres vom Arbeitgeber übermittelt.',
-      requiredDocs: ['Lohnsteuerbescheinigung'],
-      steps: ['Bruttolohn und einbehaltene Steuer prüfen', 'Daten in Steuer-Software übertragen'],
-      priority: TaskPriority.high,
-      eventType: LifeEventType.taxYear,
-    ),
-  ];
+  /// Get all events from JSON (for UI)
+  static List<JsonEvent> getAllEvents() {
+    return DataService.instance.events;
+  }
 }

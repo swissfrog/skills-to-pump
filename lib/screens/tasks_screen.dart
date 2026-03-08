@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
-import '../models/life_models.dart';
 import '../services/life_store.dart';
-import 'task_detail_screen.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -11,142 +8,97 @@ class TasksScreen extends StatefulWidget {
   State<TasksScreen> createState() => _TasksScreenState();
 }
 
-class _TasksScreenState extends State<TasksScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+class _TasksScreenState extends State<TasksScreen> {
+  String _filter = 'all';
 
   @override
   Widget build(BuildContext context) {
-    final store = LifeStore();
+    var tasks = LifeStore.getTasks();
+    if (_filter == 'pending') tasks = tasks.where((t) => t['completed'] != true).toList();
+    if (_filter == 'completed') tasks = tasks.where((t) => t['completed'] == true).toList();
 
-    return ListenableBuilder(
-      listenable: store,
-      builder: (context, _) {
-        final openTasks = store.openTasks;
-        final completedTasks = store.completedTasks;
-
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Tasks', style: LN.h2),
-            bottom: TabBar(
-              controller: _tabController,
-              indicatorColor: LN.primary,
-              labelColor: LN.primary,
-              unselectedLabelColor: LN.label3,
-              indicatorSize: TabBarIndicatorSize.label,
-              tabs: [
-                Tab(text: 'Open (${openTasks.length})'),
-                Tab(text: 'Done (${completedTasks.length})'),
-              ],
-            ),
-          ),
-          body: TabBarView(
-            controller: _tabController,
-            children: [
-              _TaskList(tasks: openTasks, isCompleted: false),
-              _TaskList(tasks: completedTasks, isCompleted: true),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Tasks'),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.filter_list),
+            onSelected: (v) => setState(() => _filter = v),
+            itemBuilder: (_) => [
+              const PopupMenuItem(value: 'all', child: Text('All')),
+              const PopupMenuItem(value: 'pending', child: Text('Pending')),
+              const PopupMenuItem(value: 'completed', child: Text('Completed')),
             ],
           ),
-        );
-      },
-    );
-  }
-}
-
-class _TaskList extends StatelessWidget {
-  final List<LifeTask> tasks;
-  final bool isCompleted;
-  const _TaskList({required this.tasks, required this.isCompleted});
-
-  @override
-  Widget build(BuildContext context) {
-    if (tasks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(isCompleted ? Icons.check_circle_outline : Icons.assignment_outlined, 
-                 size: 64, color: LN.label3.withValues(alpha: 0.3)),
-            const SizedBox(height: 16),
-            Text(isCompleted ? 'No completed tasks yet' : 'Everything done!', 
-                 style: LN.bodySmall),
-          ],
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: tasks.length,
-      itemBuilder: (context, i) => _TaskCard(task: tasks[i]),
-    );
-  }
-}
-
-class _TaskCard extends StatelessWidget {
-  final LifeTask task;
-  const _TaskCard({required this.task});
-
-  @override
-  Widget build(BuildContext context) {
-    final store = LifeStore();
-    final isDone = task.status == TaskStatus.completed;
-
-    return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => TaskDetailScreen(task: task))),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: LN.surface,
-          borderRadius: LN.r24,
-          border: Border.all(color: LN.divider),
-        ),
-        child: Row(
-          children: [
-            Transform.scale(
-              scale: 1.2,
-              child: Checkbox(
-                value: isDone,
-                activeColor: LN.success,
-                shape: const CircleBorder(),
-                onChanged: (v) {
-                  store.updateTaskStatus(task.id, v! ? TaskStatus.completed : TaskStatus.open);
-                },
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
+        ],
+      ),
+      body: tasks.isEmpty
+          ? Center(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    task.title,
-                    style: LN.body.copyWith(
-                      fontWeight: FontWeight.w600,
-                      decoration: isDone ? TextDecoration.lineThrough : null,
-                      color: isDone ? LN.label3 : LN.label1,
-                    ),
-                  ),
-                  if (task.deadline != null && !isDone)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: Text(
-                        'Due: ${task.deadline!.day}.${task.deadline!.month}.',
-                        style: LN.label.copyWith(color: task.isOverdue ? LN.danger : LN.highlight),
-                      ),
-                    ),
+                  Icon(Icons.task, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text('No tasks yet', style: TextStyle(color: Colors.grey[600], fontSize: 18)),
+                  const SizedBox(height: 8),
+                  const Text('Tap + to add a task'),
                 ],
               ),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: tasks.length,
+              itemBuilder: (ctx, i) {
+                final task = tasks[i];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  child: CheckboxListTile(
+                    value: task['completed'] == true,
+                    onChanged: (v) {
+                      task['completed'] = v;
+                      LifeStore.updateTask(task['key'] ?? i, task);
+                      setState(() {});
+                    },
+                    title: Text(task['title'] ?? 'Untitled'),
+                    subtitle: Text(task['category'] ?? 'General'),
+                    secondary: IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () {
+                        LifeStore.deleteTask(task['key'] ?? i);
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                );
+              },
             ),
-            const Icon(Icons.chevron_right, color: LN.label3),
-          ],
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddTaskDialog(),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  void _showAddTaskDialog() {
+    final ctrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('New Task'),
+        content: TextField(controller: ctrl, decoration: const InputDecoration(hintText: 'Task title')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (ctrl.text.isNotEmpty) {
+                LifeStore.addTask({'title': ctrl.text, 'completed': false, 'category': 'General'});
+                Navigator.pop(context);
+                setState(() {});
+              }
+            },
+            child: const Text('Add'),
+          ),
+        ],
       ),
     );
   }

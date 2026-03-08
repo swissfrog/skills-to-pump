@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import 'package:go_router/go_router.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -13,23 +13,24 @@ class _SplashScreenState extends State<SplashScreen> {
   void initState() {
     super.initState();
     Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) Navigator.pushReplacementNamed(context, '/home');
+      if (mounted) context.go('/main');
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: LN.primary,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.asset('assets/images/logo.jpg', width: 120, height: 120),
+            Icon(Icons.explore, size: 80, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 24),
-            Text('LifeNav', style: LN.h1.copyWith(color: Colors.white, fontSize: 32)),
+            Text('LifeNav', style: Theme.of(context).textTheme.headlineLarge),
             const SizedBox(height: 8),
-            Text('Life Organizer', style: LN.body.copyWith(color: Colors.white70, fontWeight: FontWeight.w600)),
+            const Text('Your life, organized'),
+            const SizedBox(height: 32),
+            const CircularProgressIndicator(),
           ],
         ),
       ),

@@ -1,0 +1,163 @@
+{
+  "tasks": [
+    {
+      "id": "move_1",
+      "title": "Wohnsitz anmelden",
+      "description": "Offizielle Anmeldung deines neuen Wohnsitzes beim Bürgeramt.",
+      "explanation": "In Deutschland bist du gesetzlich verpflichtet, deinen neuen Wohnsitz innerhalb von 14 Tagen anzumelden.",
+      "requiredDocuments": ["Personalausweis / Reisepass", "Wohnungsgeberbestätigung"],
+      "steps": [
+        "Vereinbare online einen Termin beim Bürgeramt.",
+        "Hol dir die unterschriebene Bestätigung vom Vermieter.",
+        "Gehe zum Termin und erhalte deine Meldebescheinigung."
+      ],
+      "priority": "urgent",
+      "xpReward": 30,
+      "timeSaved": 45
+    },
+    {
+      "id": "move_2",
+      "title": "Nachsendeauftrag einrichten",
+      "description": "Richte einen Nachsendeauftrag bei der Deutschen Post ein.",
+      "explanation": "Damit verpasst du keine wichtigen Briefe während des Umzugs.",
+      "requiredDocuments": ["Personalausweis"],
+      "steps": [
+        "Besuche die Deutsche Post Website.",
+        "Wähle die Dauer (z.B. 6 oder 12 Monate).",
+        "Bezahle die Gebühr."
+      ],
+      "priority": "high",
+      "xpReward": 20,
+      "timeSaved": 15
+    },
+    {
+      "id": "move_3",
+      "title": "Internetanbieter wechseln",
+      "description": "Aktualisiere deine Anschrift oder wechsle den Anbieter.",
+      "explanation": "Umzugsservices beim Internet dauern oft mehrere Wochen.",
+      "requiredDocuments": ["Kundennummer", "Neue Adresse"],
+      "steps": [
+        "Prüfe die Verfügbarkeit an der neuen Adresse.",
+        "Beantrage den Umzugsservice oder kündige den alten Vertrag.",
+        "Koordiniere einen Technikertermin falls nötig."
+      ],
+      "priority": "medium",
+      "xpReward": 20,
+      "timeSaved": 30
+    },
+    {
+      "id": "move_4",
+      "title": "Versicherungen aktualisieren",
+      "description": "Informiere die Versicherungen über deine neue Wohnung.",
+      "explanation": "Die Beiträge für Hausrat- oder Haftpflichtversicherung können sich ändern.",
+      "requiredDocuments": ["Versicherungspolice-Nummer"],
+      "steps": [
+        "Kontaktiere deinen Versicherungsberater",
+        "Aktualisiere die Adresse im Online-Portal"
+      ],
+      "priority": "medium",
+      "xpReward": 15,
+      "timeSaved": 20
+    },
+    {
+      "id": "job_1",
+      "title": "Steuer-ID einreichen",
+      "description": "Gib deine 11-stellige Steuernummer an die Personalabteilung.",
+      "explanation": "Dein Arbeitgeber braucht diese zur korrekten Lohnsteuerberechnung.",
+      "requiredDocuments": ["Steuer-ID Dokument"],
+      "steps": [
+        "Finde deine Steuer-ID auf alten Steuerbescheiden",
+        "Sende die Nummer an die Personalabteilung"
+      ],
+      "priority": "urgent",
+      "xpReward": 20,
+      "timeSaved": 10
+    },
+    {
+      "id": "job_2",
+      "title": "Sozialversicherungsnummer prüfen",
+      "description": "Stelle sicher, dass dein Arbeitgeber deine SV-Nummer hat.",
+      "explanation": "Jeder Arbeitnehmer in Deutschland hat eine einzigartige Sozialversicherungsnummer.",
+      "requiredDocuments": ["Sozialversicherungsausweis"],
+      "steps": [
+        "Mache eine Kopie deines Ausweises",
+        "Leite sie an die Lohnbuchhaltung weiter"
+      ],
+      "priority": "high",
+      "xpReward": 15,
+      "timeSaved": 15
+    },
+    {
+      "id": "car_1",
+      "title": "Kfz-Versicherung abschließen (eVB)",
+      "description": "Schließe eine Haftpflichtversicherung ab, um die eVB-Nummer zu erhalten.",
+      "explanation": "Du kannst in Deutschland kein Fahrzeug zulassen ohne gültigen Versicherungsnachweis.",
+      "requiredDocuments": ["Führerschein", "Fahrzeugdaten"],
+      "steps": [
+        "Vergleiche online die Preise",
+        "Unterschreibe den Vertrag",
+        "Erhalte die eVB per SMS/E-Mail"
+      ],
+      "priority": "urgent",
+      "xpReward": 30,
+      "timeSaved": 60
+    },
+    {
+      "id": "car_2",
+      "title": "Fahrzeug zulassen",
+      "description": "Besuche die Zulassungsstelle um dein Nummernschild zu erhalten.",
+      "explanation": "Damit wird die Eigentumsübertragung auf dich abgeschlossen.",
+      "requiredDocuments": ["eVB-Nummer", "Personalausweis", "Zulassungsbescheinigung Teil I & II", "TÜV-Bericht"],
+      "steps": [
+        "Vereinbare einen Termin",
+        "Bringe alte Kennzeichen falls vorhanden",
+        "Bezahle die Zulassungsgebühr"
+      ],
+      "priority": "high",
+      "xpReward": 40,
+      "timeSaved": 90
+    },
+    {
+      "id": "tax_1",
+      "title": "Belege und Rechnungen sammeln",
+      "description": "Sammle alle Dokumente zu Werbungskosten oder Arztrechnungen.",
+      "explanation": "Du kannst Arbeitsmittel, Fortbildungen und Fahrtkosten von der Steuer absetzen.",
+      "requiredDocuments": ["Lohnsteuerbescheinigung", "Rechnungen", "Fahrkarten"],
+      "steps": [
+        "Sortiere die Belege nach Kategorien",
+        "Scanne sie für digitale Archivierung"
+      ],
+      "priority": "high",
+      "xpReward": 20,
+      "timeSaved": 25
+    },
+    {
+      "id": "study_1",
+      "title": "Immatrikulationsbescheinigung",
+      "description": "Lade deine Immatrikulationsbescheinigung herunter.",
+      "explanation": "Wird für Krankenversicherungsrabatte und Semestertickets benötigt.",
+      "requiredDocuments": [],
+      "steps": [
+        "Logge dich ins Uni-Portal ein",
+        "Speichere die PDF-Version"
+      ],
+      "priority": "medium",
+      "xpReward": 10,
+      "timeSaved": 5
+    },
+    {
+      "id": "family_1",
+      "title": "Geburtsurkunde",
+      "description": "Registriere die Geburt beim Standesamt.",
+      "explanation": "Wichtig für Kindergeld und Krankenversicherung.",
+      "requiredDocuments": ["Krankenhausunterlagen", "Ausweis der Eltern"],
+      "steps": [
+        "Besuche das Standesamt",
+        "Bestelle mehrere Kopien"
+      ],
+      "priority": "urgent",
+      "xpReward": 20,
+      "timeSaved": 30
+    }
+  ]
+}

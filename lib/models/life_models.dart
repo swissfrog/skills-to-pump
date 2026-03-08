@@ -78,6 +78,7 @@ class LifeTask {
   final LifeEventType? eventType;
   final String? tip;
   final int xpReward;
+  final int timeSaved;
 
   const LifeTask({
     required this.id,
@@ -92,6 +93,7 @@ class LifeTask {
     this.eventType,
     this.tip,
     this.xpReward = 15,
+    this.timeSaved = 0,
   });
 
   LifeTask copyWith({TaskStatus? status}) => LifeTask(
@@ -99,7 +101,7 @@ class LifeTask {
     explanation: explanation, requiredDocs: requiredDocs,
     steps: steps, priority: priority,
     status: status ?? this.status,
-    deadline: deadline, eventType: eventType, tip: tip, xpReward: xpReward,
+    deadline: deadline, eventType: eventType, tip: tip, xpReward: xpReward, timeSaved: timeSaved,
   );
 
   bool get isOverdue =>

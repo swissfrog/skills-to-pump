@@ -1,0 +1,52 @@
+{
+  "events": [
+    {
+      "id": "move",
+      "title": "Umzug",
+      "icon": "home_outlined",
+      "description": "Alles rund um den Umzug in eine neue Wohnung",
+      "category": "Housing",
+      "taskIds": ["move_1", "move_2", "move_3", "move_4"]
+    },
+    {
+      "id": "newJob",
+      "title": "Neuer Job",
+      "icon": "work_outline",
+      "description": "Start einer neuen Arbeitsstelle",
+      "category": "Career",
+      "taskIds": ["job_1", "job_2"]
+    },
+    {
+      "id": "buyCar",
+      "title": "Auto kaufen",
+      "icon": "directions_car_outlined",
+      "description": "Fahrzeug kaufen oder zulassen",
+      "category": "Mobility",
+      "taskIds": ["car_1", "car_2"]
+    },
+    {
+      "id": "taxYear",
+      "title": "Steuerjahr",
+      "icon": "description_outlined",
+      "description": "Jährliche Steuererklärung",
+      "category": "Finance",
+      "taskIds": ["tax_1"]
+    },
+    {
+      "id": "study",
+      "title": "Studium",
+      "icon": "school_outlined",
+      "description": "Universität und Ausbildung",
+      "category": "Education",
+      "taskIds": ["study_1"]
+    },
+    {
+      "id": "family",
+      "title": "Familie",
+      "icon": "favorite_outline",
+      "description": "Familienereignisse und Meilensteine",
+      "category": "Family",
+      "taskIds": ["family_1"]
+    }
+  ]
+}
