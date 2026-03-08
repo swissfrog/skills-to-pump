@@ -1,47 +1,130 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../models/life_models.dart';
+import 'event_templates.dart';
+import 'user_progress.dart';
 
-class LifeStore {
-  static const String _tasksBox = 'tasks';
-  static const String _eventsBox = 'events';
-  static const String _settingsBox = 'settings';
+const _kEventsKey = 'lifenav_events';
 
-  static late Box _tasks;
-  static late Box _events;
-  static late Box _settings;
+/// Central state for life events and tasks.
+class LifeStore extends ChangeNotifier {
+  static final LifeStore _i = LifeStore._();
+  factory LifeStore() => _i;
+  LifeStore._() { _loadOrSeed(); }
 
-  static Future<void> init() async {
-    await Hive.initFlutter();
-    _tasks = await Hive.openBox(_tasksBox);
-    _events = await Hive.openBox(_eventsBox);
-    _settings = await Hive.openBox(_settingsBox);
+  final List<LifeEvent> _events = [];
+  final _progress = UserProgress();
+  bool _loaded = false;
+
+  Future<void> _loadOrSeed() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString(_kEventsKey);
+    if (json != null && json.isNotEmpty) {
+      try {
+        final list = jsonDecode(json) as List;
+        _events.clear();
+        _events.addAll(list.map((e) => LifeEvent.fromJson(e as Map<String, dynamic>)));
+      } catch (_) {}
+    }
+    if (_events.isEmpty) _seedDemoData();
+    _loaded = true;
+    notifyListeners();
   }
 
-  // Tasks
-  static List<Map> getTasks() => _tasks.values.map((e) => Map<String, dynamic>.from(e)).toList();
-  
-  static Future<void> addTask(Map task) async {
-    await _tasks.add(task);
+  Future<void> _persist() async {
+    if (!_loaded) return;
+    final prefs = await SharedPreferences.getInstance();
+    final list = _events.map((e) => e.toJson()).toList();
+    await prefs.setString(_kEventsKey, jsonEncode(list));
   }
 
-  static Future<void> updateTask(int key, Map task) async {
-    await _tasks.put(key, task);
+  List<LifeEvent> get events => List.unmodifiable(_events);
+
+  List<LifeTask> get allTasks =>
+      _events.expand((e) => e.tasks).toList()
+        ..sort((a, b) {
+          if (a.status.isDone && !b.status.isDone) return 1;
+          if (!a.status.isDone && b.status.isDone) return -1;
+          final pa = a.priority.index; final pb = b.priority.index;
+          if (pa != pb) return pb.compareTo(pa);
+          if (a.deadline == null && b.deadline != null) return 1;
+          if (a.deadline != null && b.deadline == null) return -1;
+          if (a.deadline != null && b.deadline != null) return a.deadline!.compareTo(b.deadline!);
+          return 0;
+        });
+
+  List<LifeTask> get openTasks => allTasks.where((t) => !t.status.isDone).toList();
+  List<LifeTask> get todayTasks => openTasks.where((t) => t.isDueToday || t.isOverdue).toList();
+  List<LifeTask> get urgentTasks => openTasks.where((t) => t.isDueSoon || t.priority == TaskPriority.urgent).toList();
+  List<LifeTask> get completedTasks => allTasks.where((t) => t.status.isDone).toList();
+
+  LifeTask? get nextTask => openTasks.isNotEmpty ? openTasks.first : null;
+
+  int get estimatedMinutesSaved => completedTasks.length * 45;
+
+  // ── Actions ─────────────────────────────────────────────────────────────────
+
+  LifeEvent startEvent(LifeEventType type) {
+    final templates = EventTemplates.getTasksForEvent(type);
+    final tasks = templates.map((t) => t.copyWith()).toList();
+
+    final ev = LifeEvent(
+      id: 'ev_${DateTime.now().millisecondsSinceEpoch}',
+      type: type,
+      startedAt: DateTime.now(),
+      tasks: tasks,
+    );
+    _events.insert(0, ev);
+    notifyListeners();
+    _persist();
+    return ev;
   }
 
-  static Future<void> deleteTask(int key) async {
-    await _tasks.delete(key);
+  /// Returns the event if it just became completed (all tasks done), else null.
+  LifeEvent? updateTaskStatus(String taskId, TaskStatus status) {
+    for (int ei = 0; ei < _events.length; ei++) {
+      final tasks = _events[ei].tasks;
+      final ti = tasks.indexWhere((t) => t.id == taskId);
+      if (ti >= 0) {
+        final task = tasks[ti];
+        final wasCompleted = task.status.isDone;
+        final updated = List<LifeTask>.from(tasks);
+        updated[ti] = task.copyWith(status: status);
+        _events[ei] = LifeEvent(
+          id: _events[ei].id, type: _events[ei].type,
+          startedAt: _events[ei].startedAt, tasks: updated,
+        );
+        if (status == TaskStatus.completed) {
+          _progress.completeTask();
+          _progress.addTimeSaved(task.timeSaved);
+          _progress.addLifeScoreForTask();
+        }
+        notifyListeners();
+        _persist();
+        final ev = _events[ei];
+        if (ev.isCompleted) {
+          _progress.addLifeScoreForEvent();
+          return ev;
+        }
+        return null;
+      }
+    }
+    return null;
   }
 
-  // Events
-  static List<Map> getEvents() => _events.values.map((e) => Map<String, dynamic>.from(e)).toList();
-  
-  static Future<void> addEvent(Map event) async {
-    await _events.add(event);
-  }
+  bool hasEvent(LifeEventType type) => _events.any((e) => e.type == type);
 
-  // Settings
-  static dynamic get(String key) => _settings.get(key);
-  
-  static Future<void> set(String key, dynamic value) async {
-    await _settings.put(key, value);
+  // ── Demo seed ────────────────────────────────────────────────────────────────
+  void _seedDemoData() {
+    final moveTasks = EventTemplates.getTasksForEvent(LifeEventType.move);
+    // Mark first two as done
+    final seeded = moveTasks.asMap().entries.map((e) =>
+        e.key < 2 ? e.value.copyWith(status: TaskStatus.completed) : e.value).toList();
+    _events.add(LifeEvent(
+      id: 'ev_demo', type: LifeEventType.move,
+      startedAt: DateTime.now().subtract(const Duration(days: 5)),
+      tasks: seeded,
+    ));
   }
 }

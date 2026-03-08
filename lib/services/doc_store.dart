@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/models.dart';
+import 'user_progress.dart';
 
 /// Simple in-memory document store with ChangeNotifier.
 class DocStore extends ChangeNotifier {
@@ -34,6 +35,7 @@ class DocStore extends ChangeNotifier {
 
   void addDocument(ScannedDocument doc) {
     _docs.insert(0, doc);
+    UserProgress().addLifeScoreForDocument();
     notifyListeners();
   }
 
@@ -53,6 +55,13 @@ class DocStore extends ChangeNotifier {
       final tasks = _docs[i].tasks.map((t) => t.id == taskId ? t.copyWith(status: status) : t).toList();
       if (tasks.any((t) => t.id == taskId)) {
         _docs[i] = _docs[i].copyWith(tasks: tasks);
+      }
+    }
+    // Update standalone tasks
+    for (int i = 0; i < _allTasks.length; i++) {
+      if (_allTasks[i].id == taskId) {
+        _allTasks[i] = _allTasks[i].copyWith(status: status);
+        break;
       }
     }
     notifyListeners();
